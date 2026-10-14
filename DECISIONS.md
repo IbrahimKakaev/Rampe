@@ -75,6 +75,8 @@ Chaque choix technique de Rampe et sa raison. Une décision qu'on change n'est p
 
 **Le lien d'évitement déplace le focus par code.** Avec `<base href="/">`, un lien `#contenu` renverrait à l'accueil depuis toute autre route.
 
+**Le serveur de développement Angular écoute sur le port 4300**, pas sur le 4200 par défaut, déjà occupé par un autre projet sur le poste de développement.
+
 ### Dépôt
 
 **Une branche par jalon, fusionnée dans `main` après validation.** `main` ne contient que des jalons validés.

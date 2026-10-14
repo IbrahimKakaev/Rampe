@@ -30,22 +30,22 @@ Il se clôt par un résumé (ce qui marche, comment le vérifier, ce qui reste, 
 
 Prérequis : Node 26, pnpm 12, Docker avec Compose.
 
-| Commande                                       | Effet                                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `pnpm install`                                 | Installe les dépendances                                                                    |
-| `docker compose up --build`                    | Lance toute l'application : interface sur http://127.0.0.1:8080                             |
-| `pnpm lint`                                    | ESLint, dont les règles d'accessibilité des gabarits Angular                                |
-| `pnpm format` / `pnpm format:check`            | Prettier                                                                                    |
-| `pnpm typecheck`                               | Types de tout le dépôt, gabarits Angular compris                                            |
-| `pnpm test`                                    | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                           |
-| `pnpm test:integration`                        | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                  |
-| `pnpm test:e2e`                                | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose           |
-| `pnpm build`                                   | Compile tous les paquets                                                                    |
-| `pnpm audit --audit-level high`                | Vulnérabilités connues des dépendances                                                      |
-| `pnpm licenses:check`                          | Refuse GPL, AGPL et toute licence inconnue                                                  |
-| `pnpm --filter @rampe/api run test`            | Une commande dans un seul paquet                                                            |
-| `pnpm --filter @rampe/e2e run install-browser` | Installe Chromium pour les tests de bout en bout (une fois)                                 |
-| `pnpm --filter @rampe/web start`               | Interface en rechargement à chaud ; `/api` est relayé vers l'application lancée par Compose |
+| Commande                                       | Effet                                                                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                                 | Installe les dépendances                                                                                              |
+| `docker compose up --build`                    | Lance toute l'application : interface sur http://127.0.0.1:8080                                                       |
+| `pnpm lint`                                    | ESLint, dont les règles d'accessibilité des gabarits Angular                                                          |
+| `pnpm format` / `pnpm format:check`            | Prettier                                                                                                              |
+| `pnpm typecheck`                               | Types de tout le dépôt, gabarits Angular compris                                                                      |
+| `pnpm test`                                    | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                                                     |
+| `pnpm test:integration`                        | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                                            |
+| `pnpm test:e2e`                                | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose                                     |
+| `pnpm build`                                   | Compile tous les paquets                                                                                              |
+| `pnpm audit --audit-level high`                | Vulnérabilités connues des dépendances                                                                                |
+| `pnpm licenses:check`                          | Refuse GPL, AGPL et toute licence inconnue                                                                            |
+| `pnpm --filter @rampe/api run test`            | Une commande dans un seul paquet                                                                                      |
+| `pnpm --filter @rampe/e2e run install-browser` | Installe Chromium pour les tests de bout en bout (une fois)                                                           |
+| `pnpm --filter @rampe/web start`               | Interface en rechargement à chaud sur http://localhost:4300 ; `/api` est relayé vers l'application lancée par Compose |
 
 ## Structure
 
