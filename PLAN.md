@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalon J0 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalon J0 validé et fusionné dans `main`. Jalon J1 en cours.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -286,10 +286,10 @@ Critères d'acceptation :
 - [x] `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` et `pnpm build` passent à la racine.
 - [x] Depuis un clone neuf, `docker compose up` affiche la page d'accueil en français, et `/api/v1/health` rapporte l'état de la base et de la file.
 - [x] Un test d'intégration prouve que BullMQ fonctionne sur Valkey : job simple, job différé, job planifié (D2).
-- [ ] La CI exécute lint, formatage, types, tests, build, audit des dépendances et contrôle des licences, et échoue sur GPL, AGPL ou licence inconnue. _Workflow écrit ; chaque commande passe en local et le refus d'une licence GPL est vérifié sur une entrée simulée. Pas encore exécuté sur GitHub._
+- [x] La CI exécute lint, formatage, types, tests, build, audit des dépendances et contrôle des licences, et échoue sur GPL, AGPL ou licence inconnue. _Le refus d'une licence GPL est vérifié sur une entrée simulée._
 - [x] Le seuil de couverture de `packages/rules` est fixé à 100 % et bloque la CI. _Vérifié en local : la commande de test échoue dès qu'une fonction n'est pas couverte._
-- [ ] La page d'accueil passe axe sans violation, en CI. _Vrai en local, contre l'application lancée par Compose. Pas encore exécuté sur GitHub._
-- [ ] La CI est au vert sur GitHub (D8). _En attente du dépôt distant._
+- [x] La page d'accueil passe axe sans violation, en CI.
+- [x] La CI est au vert sur GitHub (D8). _Première exécution réussie le 14 octobre 2026 : [run 38517462486](https://github.com/IbrahimKakaev/Rampe/actions/runs/38517462486)._
 
 Écarts au plan constatés pendant le jalon :
 
