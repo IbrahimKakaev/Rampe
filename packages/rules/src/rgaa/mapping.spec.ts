@@ -44,19 +44,26 @@ describe('correspondence between axe-core rules and RGAA criteria', () => {
     }
   });
 
-  it('flags as uncertain the four links where the sources disagree', () => {
-    const uncertain = activeRules().flatMap((rule) =>
+  it('leaves no uncertain link once the editorial reviews are applied', () => {
+    const generated = AXE_RGAA_MAPPING.rules.flatMap((rule) =>
+      rule.links
+        .filter((link) => link.status === 'uncertain')
+        .map((link) => `${rule.ruleId} → ${link.criterion}`),
+    );
+    const reviewed = activeRules().flatMap((rule) =>
       rule.links
         .filter((link) => link.status === 'uncertain')
         .map((link) => `${rule.ruleId} → ${link.criterion}`),
     );
 
-    expect(uncertain.sort()).toEqual([
+    expect(generated.sort()).toEqual([
       'area-alt → 1.1',
       'aria-meter-name → 11.1',
       'aria-progressbar-name → 11.1',
       'server-side-image-map → 1.1',
     ]);
+    expect(reviewed).toEqual([]);
+    expect(rgaaLinksOf('area-alt').links[0]?.reason).toContain('Revue du 14/10/2026');
   });
 
   it('attaches the defects planted in the test site to the expected criteria, with certainty', () => {
@@ -75,21 +82,23 @@ describe('correspondence between axe-core rules and RGAA criteria', () => {
     }
   });
 
-  it('proposes candidates, never a link, for a rule axe-core does not tag', () => {
-    const untagged = activeRules().filter((rule) => rule.links.length === 0);
+  it('proposes candidates, never a link, for a rule without a reviewed criterion', () => {
+    const unlinked = activeRules().filter((rule) => rule.links.length === 0);
 
-    expect(untagged.map((rule) => rule.ruleId).sort()).toEqual([
+    expect(unlinked.map((rule) => rule.ruleId).sort()).toEqual([
       'aria-braille-equivalent',
+      'aria-meter-name',
+      'aria-progressbar-name',
       'aria-roledescription',
       'aria-tooltip-name',
-      'audio-caption',
-      'avoid-inline-spacing',
       'summary-name',
     ]);
-    for (const rule of untagged) {
+    for (const rule of unlinked) {
       expect(rule.candidates.length).toBeGreaterThan(0);
     }
-    expect(rgaaLinksOf('audio-caption')).toEqual({ links: [], candidates: ['4.1', '4.2'] });
+    expect(rgaaLinksOf('audio-caption').links).toEqual([
+      expect.objectContaining({ criterion: '4.1', tests: ['4.1.1'], status: 'confirmed' }),
+    ]);
   });
 
   it('knows nothing of a rule it has never heard of', () => {

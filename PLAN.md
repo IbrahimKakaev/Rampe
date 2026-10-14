@@ -331,7 +331,7 @@ Critères d'acceptation :
 
 - [x] Le fichier des critères est généré depuis la source officielle à un commit figé, avec la mention de la Licence Ouverte. Un test vérifie 13 thématiques, 106 critères, 258 tests. _La source est versionnée et vérifiée par son empreinte ; la CI échoue si les données générées ne sont plus à jour._
 - [x] Chaque ligne de correspondance cite sa source et porte l'état `confirmé` ou `incertain`. Le résumé de jalon liste toutes les correspondances incertaines pour que tu les arbitres. _Le détail est dans [docs/rgaa-4.1.2.md](docs/rgaa-4.1.2.md)._
-- [x] Les 106 critères sont classés, avec une justification par ligne. _1 automatisable, 25 partiellement automatisables, 80 manuels._
+- [x] Les 106 critères sont classés, avec une justification par ligne. _1 automatisable, 27 partiellement automatisables, 78 manuels, après revue._
 - [x] Le score de pré-audit, le taux de conformité et le taux moyen sont testés sur des exemples calculés à la main, cas limites compris : aucun critère applicable, audit incomplet, page sans vérification.
 - [x] L'empreinte reste identique quand la page change autour du défaut, et diffère quand le défaut change. Les variantes du site de test le prouvent. _Une même adresse du site de test, en trois états, scannée par le vrai moteur._
 - [x] Chaque règle du périmètre a un texte de correction en français. _64 règles._
@@ -341,7 +341,8 @@ Critères d'acceptation :
 Écarts au plan constatés pendant le jalon :
 
 - L'estimation préliminaire de 30 critères touchés par l'automatisation tombe à 26 : elle comptait les règles expérimentales, qu'axe-core n'exécute pas, et les correspondances incertaines.
-- « Automatisable » ne vaut que pour le critère 8.5. C'est un choix prudent, à arbitrer : d'autres critères (8.3, 2.1, 6.2) s'en approchent, mais un test automatique ne les tranche pas dans les deux sens.
+- « Automatisable » ne vaut que pour le critère 8.5 : d'autres critères (8.3, 2.1, 6.2) s'en approchent, mais un test automatique ne les tranche pas dans les deux sens.
+- Les quatre correspondances incertaines et deux règles sans étiquette ont été tranchées par une revue écrite, fondée sur le libellé officiel des tests (voir DECISIONS.md). Il ne reste aucune correspondance incertaine.
 - Les données sont générées en TypeScript plutôt qu'en JSON, pour se charger sans configuration partout.
 - La commande de scan écrit désormais chaque étape, horodatée, sur la sortie d'erreur.
 

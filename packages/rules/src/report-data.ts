@@ -3,3 +3,4 @@ export { AXE_RGAA_MAPPING } from './rgaa/data/axe-mapping-4.1.2.generated.js';
 export { CLASSIFICATION, criteriaToCheckManually } from './rgaa/classification.js';
 export { activeRules } from './rgaa/mapping.js';
 export { CURRENT_REFERENTIAL } from './rgaa/referential.js';
+export { LINK_REVIEWS } from './rgaa/reviews.js';

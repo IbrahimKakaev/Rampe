@@ -100,11 +100,11 @@ describe('classification of RGAA 4.1.2', () => {
     }
   });
 
-  it('counts 1 automatable criterion, 25 partially automatable and 80 manual', () => {
+  it('counts 1 automatable criterion, 27 partially automatable and 78 manual', () => {
     const count = (automation: string): number =>
       CLASSIFICATION.filter((entry) => entry.automation === automation).length;
 
-    expect([count('automatable'), count('partial'), count('manual')]).toEqual([1, 25, 80]);
+    expect([count('automatable'), count('partial'), count('manual')]).toEqual([1, 27, 78]);
     expect(CLASSIFICATION.find((entry) => entry.criterion === '8.5')?.automation).toBe(
       'automatable',
     );

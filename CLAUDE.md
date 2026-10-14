@@ -107,7 +107,7 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 
 - Les fichiers `src/rgaa/data/*.generated.ts` et `docs/rgaa-4.1.2.md` ne se modifient qu'en relançant `generate` ; la CI vérifie qu'ils sont à jour.
 - Un lien entre une règle et un critère n'est jamais affirmé sans ses deux sources : un lien « incertain » s'affiche « critère RGAA à confirmer ».
-- Un critère ne devient « automatisable » que par une décision écrite et justifiée dans `src/rgaa/automatable.ts`.
+- Un critère ne devient « automatisable » que par une décision écrite et justifiée dans `src/rgaa/automatable.ts`. Un lien entre règle et critère ne se confirme, ne se rejette ou ne s'ajoute que par une revue écrite dans `src/rgaa/reviews.ts`, appuyée sur le libellé officiel du test.
 - Toute règle exécutée a son texte dans `src/content/fr/corrections.ts`.
 
 **Dépendances.** Versions exactes, sans `^`. pnpm refuse par défaut les scripts d'installation des dépendances ; chaque paquet est tranché dans `allowBuilds` de `pnpm-workspace.yaml`. Une dépendance sous une licence nouvelle doit passer `pnpm licenses:check`.

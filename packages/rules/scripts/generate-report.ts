@@ -11,6 +11,7 @@ import {
   CLASSIFICATION,
   criteriaToCheckManually,
   CURRENT_REFERENTIAL,
+  LINK_REVIEWS,
 } from '../dist/report-data.js';
 
 const LABELS = {
@@ -55,17 +56,32 @@ const lines = [
   '',
   `Après un pré-audit automatique, ${String(criteriaToCheckManually())} critères sur ${String(CLASSIFICATION.length)} restent à vérifier à la main.`,
   '',
-  '## À arbitrer',
+  '## Décisions de revue',
   '',
-  'Correspondances incertaines : l’étiquette RGAA d’axe-core et les références WCAG officielles du critère ne concordent pas. L’interface les affiche « critère RGAA à confirmer ».',
+  'Là où les deux sources générées se contredisent ou se taisent, une décision écrite tranche en s’appuyant sur une troisième source officielle : le libellé du test RGAA. Ces décisions sont dans `packages/rules/src/rgaa/reviews.ts`.',
   '',
-  '| Règle | Critère | Raison |',
-  '| --- | --- | --- |',
-  ...uncertain.map(
-    ({ rule, link }) => `| \`${rule}\` | ${link.criterion} | ${cell(link.reason)} |`,
+  '| Règle | Critère | Décision | Justification |',
+  '| --- | --- | --- | --- |',
+  ...LINK_REVIEWS.map(
+    (review) =>
+      `| \`${review.ruleId}\` | ${review.criterion} | ${{ confirm: 'lien confirmé', reject: 'lien rejeté', add: 'lien ajouté' }[review.decision]} | ${cell(review.justification)} |`,
   ),
   '',
-  'Règles sans étiquette RGAA dans axe-core : leurs défauts sont signalés sans critère, avec les critères candidats d’après les références WCAG officielles.',
+  '## À arbitrer',
+  '',
+  ...(uncertain.length === 0
+    ? ['Aucune correspondance incertaine.', '']
+    : [
+        'Correspondances incertaines : l’étiquette RGAA d’axe-core et les références WCAG officielles du critère ne concordent pas. L’interface les affiche « critère RGAA à confirmer ».',
+        '',
+        '| Règle | Critère | Raison |',
+        '| --- | --- | --- |',
+        ...uncertain.map(
+          ({ rule, link }) => `| \`${rule}\` | ${link.criterion} | ${cell(link.reason)} |`,
+        ),
+        '',
+      ]),
+  'Règles sans critère RGAA (sans étiquette dans axe-core, ou lien rejeté en revue) : leurs défauts sont signalés sans critère, avec les critères candidats d’après les références WCAG officielles.',
   '',
   '| Règle | Critères WCAG | Critères RGAA candidats |',
   '| --- | --- | --- |',
@@ -91,7 +107,7 @@ const lines = [
   ...rules.flatMap((rule) =>
     rule.links.length === 0
       ? [
-          `| \`${rule.ruleId}\` | ${rule.wcag.join(', ')} | — | — | sans étiquette | Candidats : ${rule.candidates.join(', ')} |`,
+          `| \`${rule.ruleId}\` | ${rule.wcag.join(', ')} | — | — | sans critère | Candidats : ${rule.candidates.join(', ')} |`,
         ]
       : rule.links.map(
           (link) =>

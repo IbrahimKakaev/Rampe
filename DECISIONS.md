@@ -155,11 +155,20 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 
 **Les correspondances par WCAG seules ne sont jamais affirmées.** Un même critère WCAG renvoie à jusqu'à 24 critères RGAA. Pour les règles sans étiquette RGAA, Rampe ne propose que des critères candidats.
 
-**Résultat avec axe-core 4.13.0 :** 64 règles actives, 54 liens confirmés, 4 incertains, 6 règles sans étiquette. Le détail, critère par critère, est dans [docs/rgaa-4.1.2.md](docs/rgaa-4.1.2.md), généré.
+**Résultat avec axe-core 4.13.0, avant revue :** 64 règles actives, 54 liens confirmés, 4 incertains, 6 règles sans étiquette.
+
+**Les désaccords sont tranchés par une troisième source officielle : le libellé du test RGAA.** Aucun outil ni éditeur ne publie de table de correspondance officielle, et les taux d'automatisation qu'annoncent les éditeurs commerciaux ne sont pas vérifiables. Chaque décision est écrite et justifiée dans `src/rgaa/reviews.ts`, appliquée par-dessus les données générées ; une décision qui ne correspond plus aux données (après une mise à jour d'axe-core) empêche le paquet de se charger.
+
+- `area-alt` → 1.1 et `server-side-image-map` → 1.1 : **confirmés**. Les tests 1.1.2 et 1.1.4 décrivent exactement ce que vérifient ces règles ; seules les références WCAG différaient.
+- `aria-meter-name` et `aria-progressbar-name` → 11.1 : **rejetés**. Le critère 11.1 porte sur les champs de formulaire, ce que ni une jauge ni une barre de progression ne sont.
+- `audio-caption` → 4.1 (test 4.1.1) et `avoid-inline-spacing` → 10.12 (test 10.12.1) : **ajoutés**. Même critère WCAG et même objet. Pour `audio-caption`, une transcription adjacente satisfait le RGAA sans piste de sous-titres : le critère reste partiellement automatisable.
+- Les quatre autres règles sans étiquette (`aria-braille-equivalent`, `aria-roledescription`, `aria-tooltip-name`, `summary-name`) relèvent de WCAG 4.1.2, qui renvoie à 17 critères : elles restent sans critère, avec des candidats.
+
+**Après revue :** 58 liens confirmés, aucun incertain, 6 règles sans critère. Le détail, critère par critère, est dans [docs/rgaa-4.1.2.md](docs/rgaa-4.1.2.md), généré.
 
 ### Classement des critères
 
-**Classement dérivé, sauf l'« automatisable », qui est une décision écrite.** Un critère sans règle confirmée est « manuel » ; avec au moins une, « partiellement automatisable ». « Automatisable » exige qu'une règle tranche le critère dans les deux sens : un succès prouve que le critère est respecté. Ce n'est vrai que du critère 8.5 (présence d'un titre de page), justifié dans `src/rgaa/automatable.ts`. Le classement est délibérément prudent : 1 automatisable, 25 partiels, 80 manuels, donc 105 critères à vérifier à la main après un pré-audit.
+**Classement dérivé, sauf l'« automatisable », qui est une décision écrite.** Un critère sans règle confirmée est « manuel » ; avec au moins une, « partiellement automatisable ». « Automatisable » exige qu'une règle tranche le critère dans les deux sens : un succès prouve que le critère est respecté. Ce n'est vrai que du critère 8.5 (présence d'un titre de page), justifié dans `src/rgaa/automatable.ts`. Le critère 8.3, le plus proche, ne l'est pas : la seconde condition du test 8.3.1 admet une langue donnée sur chaque élément de texte, si bien qu'un échec de `html-has-lang` ne prouve pas un défaut. Le classement est délibérément prudent : 1 automatisable, 27 partiels, 78 manuels, donc 105 critères à vérifier à la main après un pré-audit.
 
 ### Indicateurs
 
