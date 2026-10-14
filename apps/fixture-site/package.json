@@ -1,0 +1,16 @@
+{
+  "name": "@rampe/fixture-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist",
+    "public"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  }
+}

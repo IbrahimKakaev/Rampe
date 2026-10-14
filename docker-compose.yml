@@ -1,0 +1,175 @@
+# Environnement local complet de Rampe : `docker compose up` suffit.
+#
+# Les identifiants par défaut ci-dessous sont publics et réservés au poste de
+# développement. Ils contiennent tous "local-only" : l'API et le worker refusent
+# de démarrer avec eux quand NODE_ENV=production. Pour les changer, copier
+# .env.example vers .env.
+#
+# Chaque image est figée par son empreinte ; l'étiquette n'est là que pour la lecture.
+
+name: rampe
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  tmpfs: [/tmp]
+  restart: unless-stopped
+
+x-build: &build
+  context: .
+  dockerfile: docker/Dockerfile
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    environment:
+      POSTGRES_USER: rampe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rampe-local-only}
+      POSTGRES_DB: rampe
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rampe -d rampe']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [data]
+    mem_limit: 512m
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
+    # BullMQ exige qu'aucune clé ne soit évincée ; le journal AOF conserve les files et les planifications.
+    command:
+      - valkey-server
+      - --requirepass
+      - ${VALKEY_PASSWORD:-rampe-local-only}
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - 'yes'
+    environment:
+      REDISCLI_AUTH: ${VALKEY_PASSWORD:-rampe-local-only}
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'valkey-cli ping | grep -q PONG']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [queue]
+    mem_limit: 256m
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+    ports:
+      - '127.0.0.1:8025:8025'
+    networks: [front, data]
+    mem_limit: 128m
+    restart: unless-stopped
+
+  api:
+    <<: *hardening
+    build:
+      <<: *build
+      target: api
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      DATABASE_URL: postgresql://rampe:${POSTGRES_PASSWORD:-rampe-local-only}@postgres:5432/rampe
+      VALKEY_URL: redis://:${VALKEY_PASSWORD:-rampe-local-only}@valkey:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/v1/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    networks: [front, data, queue]
+    mem_limit: 512m
+
+  worker:
+    <<: *hardening
+    build:
+      <<: *build
+      target: worker
+    environment:
+      NODE_ENV: development
+      VALKEY_URL: redis://:${VALKEY_PASSWORD:-rampe-local-only}@valkey:6379
+    depends_on:
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', 'dist/healthcheck.js']
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    # Le worker n'a ni accès réseau ni identifiants vers PostgreSQL.
+    networks: [queue, sandbox]
+    mem_limit: 512m
+
+  web:
+    <<: *hardening
+    build:
+      <<: *build
+      target: web
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1']
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    networks: [front]
+    mem_limit: 128m
+
+  # Site aux erreurs d'accessibilité volontaires, cible des scans de démonstration et des tests.
+  fixture-site:
+    <<: *hardening
+    build:
+      <<: *build
+      target: fixture-site
+    environment:
+      PORT: '8080'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    networks: [egress]
+    mem_limit: 128m
+
+networks:
+  # Accessible depuis le poste : interface web et API.
+  front: {}
+  # PostgreSQL et la messagerie. Sans route vers l'extérieur.
+  data:
+    internal: true
+  # Valkey, partagé par l'API et le worker. Sans route vers l'extérieur.
+  queue:
+    internal: true
+  # Bac à sable du navigateur de scan (jalon J1). Sans route vers l'extérieur.
+  sandbox:
+    internal: true
+  # Seul réseau d'où le proxy de sortie rejoindra Internet (jalon J1).
+  egress: {}
+
+volumes:
+  postgres-data:
+  valkey-data:

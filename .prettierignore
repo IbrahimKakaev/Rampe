@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.angular
+pnpm-lock.yaml
+test-results
+playwright-report
+# Recopié tel quel depuis la demande initiale : ne pas reformater.
+docs/CAHIER-DES-CHARGES.md

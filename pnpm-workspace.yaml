@@ -1,0 +1,18 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+allowBuilds:
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  cpu-features: false
+  esbuild: false
+  lmdb: false
+  msgpackr-extract: false
+  protobufjs: false
+  ssh2: false
+  unrs-resolver: false
+minimumReleaseAgeExclude:
+  - bullmq@6.3.14
+  - testcontainers@12.2.1
+  - jest-preset-angular@17.0.3

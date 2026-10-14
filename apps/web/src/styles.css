@@ -1,0 +1,42 @@
+/* Colour pairs below all reach WCAG AA contrast (4.5:1) on their background. */
+:root {
+  --color-text: #1b1b1f;
+  --color-muted: #4a4a55;
+  --color-background: #ffffff;
+  --color-surface: #f4f5f9;
+  --color-border: #6b6b76;
+  --color-brand: #0b3d91;
+  --color-up: #17602b;
+  --color-down: #a3231c;
+  --focus-ring: 3px solid #0b3d91;
+  --content-width: 46rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+a {
+  color: var(--color-brand);
+}

@@ -1,0 +1,30 @@
+<section class="service-status" aria-labelledby="etat-du-service">
+  <h2 id="etat-du-service">État du service</h2>
+
+  <div aria-live="polite">
+    @let current = state(); @switch (current.kind) { @case ('loading') {
+    <p>Vérification en cours…</p>
+    } @case ('unreachable') {
+    <p class="status status--down">L'API ne répond pas.</p>
+    } @case ('loaded') {
+    <dl>
+      <div>
+        <dt>API</dt>
+        <dd class="status status--up">en ligne</dd>
+      </div>
+      <div>
+        <dt>Base de données</dt>
+        <dd class="status" [class]="'status--' + current.health.checks.database">
+          {{ label(current.health.checks.database) }}
+        </dd>
+      </div>
+      <div>
+        <dt>File de tâches</dt>
+        <dd class="status" [class]="'status--' + current.health.checks.queue">
+          {{ label(current.health.checks.queue) }}
+        </dd>
+      </div>
+    </dl>
+    } }
+  </div>
+</section>

@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/coverage
+**/.angular
+**/test-results
+**/playwright-report
+.git
+.github
+.env
+.env.*
+docs
+# Only the manifest of the end-to-end tests is needed, for the lockfile to match.
+e2e/*
+!e2e/package.json
+*.md

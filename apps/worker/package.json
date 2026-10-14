@@ -1,0 +1,22 @@
+{
+  "name": "@rampe/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.integration.config.js"
+  },
+  "dependencies": {
+    "@rampe/shared": "workspace:*",
+    "bullmq": "6.3.14",
+    "ioredis": "6.0.0",
+    "zod": "4.6.7"
+  }
+}

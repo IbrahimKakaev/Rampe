@@ -1,0 +1,16 @@
+<a class="skip-link" href="#contenu" (click)="skipToContent($event, main)">Aller au contenu</a>
+
+<header class="site-header">
+  <a class="brand" routerLink="/">Rampe</a>
+</header>
+
+<main #main id="contenu" tabindex="-1">
+  <router-outlet />
+</main>
+
+<footer class="site-footer">
+  <p>
+    Rampe réalise un pré-audit automatique. Un test automatique ne prouve jamais la conformité au
+    RGAA : une partie des critères se vérifie à la main.
+  </p>
+</footer>
