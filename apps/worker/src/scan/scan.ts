@@ -24,6 +24,8 @@ export interface ScanServices {
   readonly fetchText: TextFetcher;
   readonly gate: NavigationGate;
   readonly userAgent: string;
+  /** Receives one line per step of the scan, for the operator. */
+  readonly log?: (message: string) => void;
 }
 
 /**
@@ -43,6 +45,9 @@ export async function runScan(
     );
   }
   const startedAt = new Date();
+  const log = (message: string): void => {
+    services.log?.(`${String(Date.now() - startedAt.getTime()).padStart(6)} ms  ${message}`);
+  };
   const scanSignal = AbortSignal.timeout(limits.scanTimeoutMs);
   let intervalMs = limits.navigationIntervalMs;
   const waitTurn = (signal: AbortSignal): Promise<void> =>
@@ -51,12 +56,15 @@ export async function runScan(
   const robotsUrl = new URL('/robots.txt', site).href;
   await waitTurn(scanSignal);
   const robots = robotsPolicyFrom(robotsUrl, await services.fetchText(robotsUrl, ROBOTS_MAX_BYTES));
+  log(`robots.txt read (${robots.reachable ? 'site reachable' : 'site unreachable'})`);
   intervalMs = Math.max(limits.navigationIntervalMs, robots.crawlDelayMs ?? 0);
   const sitemapPages = await collectSitemapPages(site, robots, services.fetchText, () =>
     waitTurn(scanSignal),
   );
+  log(`sitemaps read: ${String(sitemapPages.length)} page(s)`);
 
   const browser = await chromium.connect(services.browserWsEndpoint, { timeout: 30_000 });
+  log('browser connected');
   try {
     const context = await browser.newContext({
       userAgent: services.userAgent,
@@ -66,9 +74,17 @@ export async function runScan(
       viewport: { width: 1280, height: 800 },
     });
     let axeVersion: string | null = null;
-    const analyze = createPageAnalyzer(context, site, (version) => {
+    const analyzePage = createPageAnalyzer(context, site, (version) => {
       axeVersion = version;
     });
+    const analyze: typeof analyzePage = async (page, timeoutMs) => {
+      const outcome = await analyzePage(page, timeoutMs);
+      const { result } = outcome;
+      log(
+        `${result.status === 'analyzed' ? 'analysed' : `failed (${result.error})`}  ${result.url}`,
+      );
+      return outcome;
+    };
     const elapsed = Date.now() - startedAt.getTime();
     const outcome = await crawl(
       {
@@ -79,7 +95,9 @@ export async function runScan(
       },
       { analyze, waitTurn },
     );
+    log(`crawl ${outcome.status}`);
     await context.close();
+    log('browser context closed');
     return {
       target: site.href,
       ...outcome,
@@ -90,6 +108,7 @@ export async function runScan(
     };
   } finally {
     await browser.close();
+    log('browser disconnected');
   }
 }
 

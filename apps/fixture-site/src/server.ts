@@ -158,7 +158,14 @@ export function createFixtureServer(options: FixtureServerOptions): Server {
           return;
         }
       }
-      const file = resolvePublicFile(options.publicDir, pathname);
+      // The same address in several states, for the tests of defect fingerprints.
+      const variant = /^\/variantes\/([a-z-]+)\.html$/.exec(pathname)?.[1];
+      const state = new URLSearchParams(search).get('etat');
+      const servedPath =
+        variant !== undefined && state !== null && /^\d$/.test(state)
+          ? `/variantes/${variant}-etat-${state}.html`
+          : pathname;
+      const file = resolvePublicFile(options.publicDir, servedPath);
       const type = file === null ? undefined : CONTENT_TYPES[extname(file)];
       if (file === null || type === undefined) {
         send(response, 404, 'text/plain; charset=utf-8', 'Not Found', head);

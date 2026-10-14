@@ -169,6 +169,18 @@ describe('createFixtureServer', () => {
     expect(await response.text()).toContain('<loc>http://127.0.0.1:');
   });
 
+  it('serves a variant page in the state the query asks for, at the same path', async () => {
+    const variants = join(directory, 'public', 'variantes');
+    await mkdir(variants, { recursive: true });
+    await writeFile(join(variants, 'image-etat-1.html'), '<!doctype html><title>Un</title>');
+    await writeFile(join(variants, 'image-etat-2.html'), '<!doctype html><title>Deux</title>');
+
+    expect(await (await fetch(`${origin}/variantes/image.html?etat=1`)).text()).toContain('Un');
+    expect(await (await fetch(`${origin}/variantes/image.html?etat=2`)).text()).toContain('Deux');
+    expect((await fetch(`${origin}/variantes/image.html?etat=9`)).status).toBe(404);
+    expect((await fetch(`${origin}/variantes/image.html?etat=../../secret`)).status).toBe(404);
+  });
+
   it('answers its health check on a path no page links to', async () => {
     expect(await (await fetch(`${origin}/__health`)).text()).toBe('ok');
   });

@@ -82,6 +82,9 @@ async function main(): Promise<number> {
         fetchText: fetcher.fetchText,
         gate: createValkeyGate(valkey),
         userAgent,
+        log: (message) => {
+          console.error(message);
+        },
       },
     );
     // The report is the contract with the API: it is checked before it leaves.
@@ -97,6 +100,7 @@ async function main(): Promise<number> {
   } finally {
     await fetcher.close();
     valkey.disconnect();
+    console.error('Done.');
   }
 }
 

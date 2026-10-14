@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import { expect, test } from '@playwright/test';
+import { rgaaLinksOf } from '@rampe/rules';
 import { type AnalyzedPage, HTML_SNIPPET_MAX_LENGTH, type ScanReport } from '@rampe/shared';
 
 import {
@@ -22,7 +23,7 @@ import {
 const SITE = 'http://fixture-site/';
 const manifest = JSON.parse(
   readFileSync(new URL('../../apps/fixture-site/defects.json', import.meta.url), 'utf8'),
-) as { defects: { page: string; rule: string }[] };
+) as { defects: { page: string; rule: string; expectedRgaaCriterion: string }[] };
 
 const pathOf = (url: string): string => new URL(url).pathname;
 const isPageRequest = (request: FixtureRequest): boolean =>
@@ -62,6 +63,19 @@ test.describe('a full scan of the test site', () => {
         expect(node.selector).not.toBe('');
         expect(node.html.length).toBeGreaterThan(0);
         expect(node.html.length).toBeLessThanOrEqual(HTML_SNIPPET_MAX_LENGTH);
+      }
+    }
+  });
+
+  test('attaches every planted error to the expected RGAA criterion, with certainty', () => {
+    for (const defect of manifest.defects) {
+      const page = report.pages.find(
+        (candidate) => pathOf(candidate.url) === defect.page,
+      ) as AnalyzedPage;
+      for (const violation of page.violations) {
+        expect(rgaaLinksOf(violation.ruleId).links, defect.page).toEqual([
+          expect.objectContaining({ criterion: defect.expectedRgaaCriterion, status: 'confirmed' }),
+        ]);
       }
     }
   });

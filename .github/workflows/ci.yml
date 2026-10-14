@@ -27,6 +27,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: RGAA data are up to date with their sources and with axe-core
+        run: |
+          pnpm --filter @rampe/rules run generate
+          git diff --exit-code -- packages/rules/src/rgaa/data docs/rgaa-4.1.2.md
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck

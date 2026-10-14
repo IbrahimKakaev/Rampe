@@ -9,3 +9,5 @@ playwright-report
 docs/CAHIER-DES-CHARGES.md
 # Copie non modifiée du profil de Playwright : voir docker/THIRD_PARTY.md.
 docker/seccomp-chromium.json
+# Source officielle du RGAA, figée par son empreinte sha256 : jamais reformatée.
+packages/rules/data/sources/

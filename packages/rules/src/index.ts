@@ -1,2 +1,11 @@
+export * from './checks.js';
+export * from './conformity.js';
+export * from './content/fr/corrections.js';
+export * from './diff.js';
+export * from './fingerprint.js';
+export * from './rgaa/classification.js';
+export * from './rgaa/mapping.js';
+export * from './rgaa/referential.js';
+export type * from './rgaa/types.js';
 export * from './score.js';
 export * from './wcag.js';

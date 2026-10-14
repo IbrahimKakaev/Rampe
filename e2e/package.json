@@ -13,6 +13,7 @@
     "@playwright/test": "1.64.0"
   },
   "dependencies": {
+    "@rampe/rules": "workspace:*",
     "@rampe/shared": "workspace:*"
   }
 }

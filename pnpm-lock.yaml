@@ -336,6 +336,9 @@ importers:
 
   e2e:
     dependencies:
+      '@rampe/rules':
+        specifier: workspace:*
+        version: link:../packages/rules
       '@rampe/shared':
         specifier: workspace:*
         version: link:../packages/shared
@@ -347,7 +350,11 @@ importers:
         specifier: 1.64.0
         version: 1.64.0
 
-  packages/rules: {}
+  packages/rules:
+    devDependencies:
+      axe-core:
+        specifier: 4.13.0
+        version: 4.13.0
 
   packages/shared:
     dependencies:

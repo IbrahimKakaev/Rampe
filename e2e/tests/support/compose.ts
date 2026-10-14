@@ -16,7 +16,7 @@ export interface CommandResult {
 /** Runs `docker compose …` from the repository root, against the running application. */
 export function compose(args: readonly string[], timeoutMs = 120_000): Promise<CommandResult> {
   return new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       'docker',
       ['compose', ...args],
       { cwd: repositoryRoot, timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 },
@@ -25,17 +25,28 @@ export function compose(args: readonly string[], timeoutMs = 120_000): Promise<C
         resolve({ code, stdout, stderr });
       },
     );
+    // `docker compose exec` always forwards standard input to the container. Left
+    // open, it can keep the command waiting after the process inside has exited.
+    child.stdin?.end();
   });
 }
 
-/** Runs the scan command in the worker container and returns its validated report. */
-export async function scan(url: string, options: readonly string[] = []): Promise<ScanReport> {
+/**
+ * Runs the scan command in the worker container and returns its validated
+ * report. A scan that fails or outlasts `timeoutMs` throws with the steps it
+ * logged, to show where it stopped.
+ */
+export async function scan(
+  url: string,
+  options: readonly string[] = [],
+  timeoutMs = 2 * 60_000,
+): Promise<ScanReport> {
   const result = await compose(
     ['exec', '-T', 'worker', 'node', 'dist/scan-cli.js', url, ...options],
-    5 * 60_000,
+    timeoutMs,
   );
   if (result.code !== 0) {
-    throw new Error(`scan failed (${String(result.code)}): ${result.stderr}`);
+    throw new Error(`scan failed (${String(result.code)}):\n${result.stderr}`);
   }
   return scanReportSchema.parse(JSON.parse(result.stdout));
 }

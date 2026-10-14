@@ -16,6 +16,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "generate": "node scripts/generate-data.ts && prettier --write src/rgaa/data && pnpm run report",
+    "report": "tsc -p tsconfig.build.json && node scripts/generate-report.ts && prettier --write ../../docs/rgaa-4.1.2.md"
+  },
+  "devDependencies": {
+    "axe-core": "4.13.0"
   }
 }
