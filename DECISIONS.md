@@ -138,3 +138,51 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 **Le site de test journalise aussi les requêtes abandonnées** (statut 0), pour que le test de parallélisme voie la page lente. Sa sonde de santé interroge `/__health`, que les tests écartent.
 
 **`axe-core` est une dépendance de développement du worker**, pour ses types seulement ; l'exécution utilise la copie qu'apporte `@axe-core/playwright`. Le `tsconfig` du worker inclut les types du DOM, nécessaires aux fonctions exécutées dans la page.
+
+## Jalon J2, 14 octobre 2026
+
+### Données du référentiel
+
+**Le fichier officiel des critères est versionné dans le dépôt, figé par son empreinte.** `packages/rules/data/sources/rgaa-4.1.2/criteres.json` vient du dépôt de la DINUM au commit `95d5ef3`, sous Licence Ouverte 2.0. Le générateur refuse de tourner si son empreinte sha256 change : une mise à jour du référentiel est une décision, jamais un accident. Les données se régénèrent sans réseau.
+
+**Les données sont générées en TypeScript, pas en JSON.** `src/rgaa/data/*.generated.ts` est typé, se charge sans configuration dans Node, Jest et le bundler d'Angular, et chaque ligne garde sa source. La commande `pnpm --filter @rampe/rules run generate` les reproduit à l'octet près ; la CI échoue si le résultat diffère de ce qui est versionné, par exemple après une mise à jour d'axe-core.
+
+**Le texte officiel est repris tel quel**, liens Markdown retirés, typographie française comprise (espace insécable avant « ? »).
+
+### Correspondance entre règles et critères
+
+**Deux sources recoupées, aucune inventée.** axe-core étiquette ses règles avec des tests RGAA (`RGAA-1.1.1`) : c'est une correspondance de Deque, non officielle. Le référentiel officiel donne, pour chaque critère, ses critères WCAG. Un lien est **confirmé** quand l'étiquette d'axe-core désigne un critère dont les références officielles partagent un critère WCAG avec la règle ; **incertain** sinon. Chaque lien porte sa source et la raison de son état.
+
+**Les correspondances par WCAG seules ne sont jamais affirmées.** Un même critère WCAG renvoie à jusqu'à 24 critères RGAA. Pour les règles sans étiquette RGAA, Rampe ne propose que des critères candidats.
+
+**Résultat avec axe-core 4.13.0 :** 64 règles actives, 54 liens confirmés, 4 incertains, 6 règles sans étiquette. Le détail, critère par critère, est dans [docs/rgaa-4.1.2.md](docs/rgaa-4.1.2.md), généré.
+
+### Classement des critères
+
+**Classement dérivé, sauf l'« automatisable », qui est une décision écrite.** Un critère sans règle confirmée est « manuel » ; avec au moins une, « partiellement automatisable ». « Automatisable » exige qu'une règle tranche le critère dans les deux sens : un succès prouve que le critère est respecté. Ce n'est vrai que du critère 8.5 (présence d'un titre de page), justifié dans `src/rgaa/automatable.ts`. Le classement est délibérément prudent : 1 automatisable, 25 partiels, 80 manuels, donc 105 critères à vérifier à la main après un pré-audit.
+
+### Indicateurs
+
+**Une vérification = une règle sur une page ; le pire résultat l'emporte.** axe-core peut ranger une même règle dans plusieurs catégories quand ses éléments diffèrent. Un défaut sur un élément fait échouer la vérification ; un élément indéterminé l'empêche de réussir.
+
+**Le taux de conformité suit la méthode officielle et reste muet tant que l'audit est incomplet.** Il vaut `null` tant qu'une évaluation manque, et aussi quand aucun critère ne s'applique, car cela ne prouverait rien. Une page où rien ne s'applique est écartée du taux moyen. Les états suivent la déclaration d'accessibilité : totale à 100 %, partielle à partir de 50 %, non conforme en dessous.
+
+**Un défaut n'est « corrigé » que si sa page a été analysée en entier dans les deux scans.** Les pages en échec, non atteintes ou tronquées n'entrent pas dans la comparaison.
+
+### Empreinte d'un défaut
+
+**Règle, chemin de la page, sélecteur normalisé, et rang en cas d'égalité.** Les sélecteurs observés sur le site de test montrent qu'axe-core décrit un élément par sa position quand rien d'autre ne le distingue (`img:nth-child(2)`). La normalisation retire les positions, les noms générés par les outils (classes CSS-in-JS, attributs d'Angular et de Vue, modules CSS, identifiants numérotés) et garde le reste. Des défauts devenus identiques sont départagés par leur ordre dans la page.
+
+**Le compromis :** si l'un de deux défauts identiques est corrigé, celui qui reste prend le premier rang, et la comparaison peut désigner le mauvais des deux comme corrigé. Les comptes restent justes. L'empreinte est une chaîne lisible, sans hachage : elle se lit dans les journaux et en base.
+
+### Textes de correction
+
+**64 textes en français, un par règle exécutée**, dans `src/content/fr/corrections.ts` : ce qui ne va pas, qui en est gêné, comment corriger. C'est un fichier de contenu, modifiable sans toucher au code ; un test vérifie qu'aucune règle n'en manque et qu'aucun texte ne parle de conformité.
+
+### Outillage
+
+**Les scripts de génération tournent avec le retrait de types natif de Node 26**, sans outil supplémentaire. Le rapport lit le paquet compilé, d'où l'ordre : données, compilation, rapport.
+
+**La commande de scan écrit chaque étape, horodatée, sur la sortie d'erreur** (robots.txt, sitemaps, connexion au navigateur, chaque page, fermeture). Les tests de bout en bout l'affichent quand un scan échoue ou dépasse son délai.
+
+**Les tests de bout en bout ferment l'entrée standard de `docker compose exec`.** La commande la transmet toujours au conteneur. Pendant le J2, la suite complète s'est bloquée deux fois sur le même test, que rien d'autre ne reproduisait, ni à la main ni isolé. Depuis cette correction, trois passages complets consécutifs ont réussi. C'est la cause la plus probable, sans preuve formelle.

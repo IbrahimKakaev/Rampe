@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalon J0 validé et fusionné dans `main`. Jalon J1 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 et J1 validés et fusionnés dans `main`. Jalon J2 réalisé, en attente de validation.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -329,14 +329,21 @@ Données du référentiel, correspondances, classement, scores, empreintes, comp
 
 Critères d'acceptation :
 
-- [ ] Le fichier des critères est généré depuis la source officielle à un commit figé, avec la mention de la Licence Ouverte. Un test vérifie 13 thématiques, 106 critères, 258 tests.
-- [ ] Chaque ligne de correspondance cite sa source et porte l'état `confirmé` ou `incertain`. Le résumé de jalon liste toutes les correspondances incertaines pour que tu les arbitres.
-- [ ] Les 106 critères sont classés, avec une justification par ligne.
-- [ ] Le score de pré-audit, le taux de conformité et le taux moyen sont testés sur des exemples calculés à la main, cas limites compris : aucun critère applicable, audit incomplet, page sans vérification.
-- [ ] L'empreinte reste identique quand la page change autour du défaut, et diffère quand le défaut change. Les variantes du site de test le prouvent.
-- [ ] Chaque règle du périmètre a un texte de correction en français.
-- [ ] Couverture de `packages/rules` : 100 % des lignes, branches et fonctions.
-- [ ] De bout en bout, chaque erreur du site de test est rattachée au critère attendu. Attendus, à confirmer : image sans alternative 1.1, champ sans étiquette 11.1, contraste 3.2, lien vide 6.2, langue absente 8.3, titre manquant 8.5.
+- [x] Le fichier des critères est généré depuis la source officielle à un commit figé, avec la mention de la Licence Ouverte. Un test vérifie 13 thématiques, 106 critères, 258 tests. _La source est versionnée et vérifiée par son empreinte ; la CI échoue si les données générées ne sont plus à jour._
+- [x] Chaque ligne de correspondance cite sa source et porte l'état `confirmé` ou `incertain`. Le résumé de jalon liste toutes les correspondances incertaines pour que tu les arbitres. _Le détail est dans [docs/rgaa-4.1.2.md](docs/rgaa-4.1.2.md)._
+- [x] Les 106 critères sont classés, avec une justification par ligne. _1 automatisable, 25 partiellement automatisables, 80 manuels._
+- [x] Le score de pré-audit, le taux de conformité et le taux moyen sont testés sur des exemples calculés à la main, cas limites compris : aucun critère applicable, audit incomplet, page sans vérification.
+- [x] L'empreinte reste identique quand la page change autour du défaut, et diffère quand le défaut change. Les variantes du site de test le prouvent. _Une même adresse du site de test, en trois états, scannée par le vrai moteur._
+- [x] Chaque règle du périmètre a un texte de correction en français. _64 règles._
+- [x] Couverture de `packages/rules` : 100 % des lignes, branches et fonctions.
+- [x] De bout en bout, chaque erreur du site de test est rattachée au critère attendu. Attendus, à confirmer : image sans alternative 1.1, champ sans étiquette 11.1, contraste 3.2, lien vide 6.2, langue absente 8.3, titre manquant 8.5. _Les six sont confirmés._
+
+Écarts au plan constatés pendant le jalon :
+
+- L'estimation préliminaire de 30 critères touchés par l'automatisation tombe à 26 : elle comptait les règles expérimentales, qu'axe-core n'exécute pas, et les correspondances incertaines.
+- « Automatisable » ne vaut que pour le critère 8.5. C'est un choix prudent, à arbitrer : d'autres critères (8.3, 2.1, 6.2) s'en approchent, mais un test automatique ne les tranche pas dans les deux sens.
+- Les données sont générées en TypeScript plutôt qu'en JSON, pour se charger sans configuration partout.
+- La commande de scan écrit désormais chaque étape, horodatée, sur la sortie d'erreur.
 
 ### J3 — API, base de données et vérification de propriété
 

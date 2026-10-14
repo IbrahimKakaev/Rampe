@@ -30,23 +30,24 @@ Il se clôt par un résumé (ce qui marche, comment le vérifier, ce qui reste, 
 
 Prérequis : Node 26, pnpm 12, Docker avec Compose.
 
-| Commande                                                                | Effet                                                                                                                         |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install`                                                          | Installe les dépendances                                                                                                      |
-| `docker compose up --build`                                             | Lance toute l'application : interface sur http://127.0.0.1:8080                                                               |
-| `pnpm lint`                                                             | ESLint, dont les règles d'accessibilité des gabarits Angular                                                                  |
-| `pnpm format` / `pnpm format:check`                                     | Prettier                                                                                                                      |
-| `pnpm typecheck`                                                        | Types de tout le dépôt, gabarits Angular compris                                                                              |
-| `pnpm test`                                                             | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                                                             |
-| `pnpm test:integration`                                                 | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                                                    |
-| `pnpm test:e2e`                                                         | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose                                             |
-| `pnpm build`                                                            | Compile tous les paquets                                                                                                      |
-| `pnpm audit --audit-level high`                                         | Vulnérabilités connues des dépendances                                                                                        |
-| `pnpm licenses:check`                                                   | Refuse GPL, AGPL et toute licence inconnue                                                                                    |
-| `pnpm --filter @rampe/api run test`                                     | Une commande dans un seul paquet                                                                                              |
-| `pnpm --filter @rampe/e2e run install-browser`                          | Installe Chromium pour les tests de bout en bout (une fois)                                                                   |
-| `pnpm --filter @rampe/web start`                                        | Interface en rechargement à chaud sur http://localhost:4300 ; `/api` est relayé vers l'application lancée par Compose         |
-| `docker compose exec worker node dist/scan-cli.js http://fixture-site/` | Scanne un site et affiche le rapport en JSON ; options `--max-pages`, `--max-depth`, `--page-timeout-ms`, `--scan-timeout-ms` |
+| Commande                                                                | Effet                                                                                                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                                                          | Installe les dépendances                                                                                                              |
+| `docker compose up --build`                                             | Lance toute l'application : interface sur http://127.0.0.1:8080                                                                       |
+| `pnpm lint`                                                             | ESLint, dont les règles d'accessibilité des gabarits Angular                                                                          |
+| `pnpm format` / `pnpm format:check`                                     | Prettier                                                                                                                              |
+| `pnpm typecheck`                                                        | Types de tout le dépôt, gabarits Angular compris                                                                                      |
+| `pnpm test`                                                             | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                                                                     |
+| `pnpm test:integration`                                                 | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                                                            |
+| `pnpm test:e2e`                                                         | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose                                                     |
+| `pnpm build`                                                            | Compile tous les paquets                                                                                                              |
+| `pnpm audit --audit-level high`                                         | Vulnérabilités connues des dépendances                                                                                                |
+| `pnpm licenses:check`                                                   | Refuse GPL, AGPL et toute licence inconnue                                                                                            |
+| `pnpm --filter @rampe/rules run generate`                               | Régénère les données RGAA et `docs/rgaa-4.1.2.md` depuis la source officielle et axe-core ; à lancer après une mise à jour d’axe-core |
+| `pnpm --filter @rampe/api run test`                                     | Une commande dans un seul paquet                                                                                                      |
+| `pnpm --filter @rampe/e2e run install-browser`                          | Installe Chromium pour les tests de bout en bout (une fois)                                                                           |
+| `pnpm --filter @rampe/web start`                                        | Interface en rechargement à chaud sur http://localhost:4300 ; `/api` est relayé vers l'application lancée par Compose                 |
+| `docker compose exec worker node dist/scan-cli.js http://fixture-site/` | Scanne un site et affiche le rapport en JSON ; options `--max-pages`, `--max-depth`, `--page-timeout-ms`, `--scan-timeout-ms`         |
 
 ## Structure
 
@@ -61,7 +62,15 @@ apps/
                     dist/browser-server/main.js  Chromium isolé (conteneur browser)
   fixture-site/   site de test aux erreurs volontaires ; defects.json les liste
 packages/
-  rules/          règles RGAA et calcul des scores : code pur, sans I/O, couvert à 100 %
+  rules/          code pur, sans I/O, couvert à 100 % :
+                    src/rgaa/                  référentiel, correspondance avec axe-core, classement
+                    src/rgaa/data/             données générées (ne pas modifier à la main)
+                    src/content/fr/            textes de correction en français (contenu modifiable)
+                    src/checks.ts, score.ts    score de pré-audit
+                    src/conformity.ts          taux de conformité, méthode officielle
+                    src/fingerprint.ts, diff.ts empreinte des défauts, comparaison de scans
+                    data/sources/              fichier officiel des critères, figé par son empreinte
+                    scripts/                   génération des données et du rapport
   shared/         schémas de validation et types partagés par toutes les applications
 e2e/              tests Playwright de bout en bout, avec axe-core
 test-support/     démarrage des conteneurs pour les tests d'intégration
@@ -95,6 +104,11 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 - Un test porte le nom du comportement attendu, pas celui de la fonction.
 
 **`packages/rules`.** Aucune entrée-sortie, aucune dépendance à l'horloge ou au réseau. Tout ce qui interprète un résultat de scan (score, correspondance RGAA, empreinte, comparaison) s'y trouve.
+
+- Les fichiers `src/rgaa/data/*.generated.ts` et `docs/rgaa-4.1.2.md` ne se modifient qu'en relançant `generate` ; la CI vérifie qu'ils sont à jour.
+- Un lien entre une règle et un critère n'est jamais affirmé sans ses deux sources : un lien « incertain » s'affiche « critère RGAA à confirmer ».
+- Un critère ne devient « automatisable » que par une décision écrite et justifiée dans `src/rgaa/automatable.ts`.
+- Toute règle exécutée a son texte dans `src/content/fr/corrections.ts`.
 
 **Dépendances.** Versions exactes, sans `^`. pnpm refuse par défaut les scripts d'installation des dépendances ; chaque paquet est tranché dans `allowBuilds` de `pnpm-workspace.yaml`. Une dépendance sous une licence nouvelle doit passer `pnpm licenses:check`.
 
