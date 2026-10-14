@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalon J0 validé et fusionné dans `main`. Jalon J1 en cours.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalon J0 validé et fusionné dans `main`. Jalon J1 réalisé, en attente de validation.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -306,14 +306,22 @@ Site de test, proxy de sortie, conteneur du navigateur, exploration, exécution 
 
 Critères d'acceptation :
 
-- [ ] Le site de test contient les six erreurs demandées, une page sans erreur, et un manifeste qui liste chaque erreur plantée (page, règle attendue).
-- [ ] Un scan du site de test détecte chaque erreur du manifeste, sur la bonne page, avec règle, gravité, sélecteur, extrait de 500 caractères au plus et critères WCAG.
-- [ ] Les journaux du site de test prouvent le comportement du robot : User-Agent correct, aucune requête vers un chemin interdit par robots.txt, au moins 1 s entre deux navigations, 2 pages en parallèle au plus, page de profondeur 4 jamais demandée, limite de pages respectée, sitemap.xml lu.
-- [ ] Une page qui met plus de 30 s est abandonnée sans faire échouer le scan. Un scan qui dépasse 15 min s'arrête à l'état « partiel ».
-- [ ] La matrice SSRF est au vert : adresses privées, bouclage, lien local, 169.254.169.254, IPv6, IPv4 encapsulée, IP en notation décimale ou octale, ports autres que 80 et 443, schémas autres que http et https, redirection vers une adresse interne, DNS rebinding.
-- [ ] Un test prouve que le conteneur `browser` ne peut joindre ni PostgreSQL, ni Valkey, ni l'API, ni Internet en direct.
-- [ ] Les limites de CPU et de mémoire sont visibles dans `docker inspect`, et le bac à sable de Chromium est actif.
-- [ ] La liste d'hôtes autorisés est refusée quand `NODE_ENV=production` (D3).
+- [x] Le site de test contient les six erreurs demandées, une page sans erreur, et un manifeste qui liste chaque erreur plantée (page, règle attendue). _`apps/fixture-site/defects.json`._
+- [x] Un scan du site de test détecte chaque erreur du manifeste, sur la bonne page, avec règle, gravité, sélecteur, extrait de 500 caractères au plus et critères WCAG. _Et aucune autre violation, sur aucune page._
+- [x] Les journaux du site de test prouvent le comportement du robot : User-Agent correct, aucune requête vers un chemin interdit par robots.txt, au moins 1 s entre deux navigations, 2 pages en parallèle au plus, page de profondeur 4 jamais demandée, limite de pages respectée, sitemap.xml lu.
+- [x] Une page qui met plus de 30 s est abandonnée sans faire échouer le scan. Un scan qui dépasse 15 min s'arrête à l'état « partiel ». _Démontré avec une limite de 5 s, par le même code ; la valeur de 15 min est vérifiée par un test unitaire._
+- [x] La matrice SSRF est au vert : adresses privées, bouclage, lien local, 169.254.169.254, IPv6, IPv4 encapsulée, IP en notation décimale ou octale, ports autres que 80 et 443, schémas autres que http et https, redirection vers une adresse interne, DNS rebinding.
+- [x] Un test prouve que le conteneur `browser` ne peut joindre ni PostgreSQL, ni Valkey, ni l'API, ni Internet en direct.
+- [x] Les limites de CPU et de mémoire sont visibles dans `docker inspect`, et le bac à sable de Chromium est actif. _Les processus de rendu tournent dans leur propre espace de noms utilisateur._
+- [x] La liste d'hôtes autorisés est refusée quand `NODE_ENV=production` (D3).
+
+Écarts au plan constatés pendant le jalon :
+
+- Le bac à sable de Chromium fonctionne sans aucun réglage d'hôte : il suffisait d'ajouter `SYS_CHROOT` à l'ensemble limite des capacités. Le risque R11 est levé (voir DECISIONS.md).
+- « Même domaine » est appliqué comme « même origine » (schéma, hôte et port), un peu plus strict que « même hôte ».
+- L'intervalle entre deux navigations est de 1,1 s, une marge sur la seconde exigée.
+- Un seul navigateur sert tous les scans, chacun dans son propre contexte.
+- Limite connue : une redirection vers un autre site est suivie par le navigateur. La page d'arrivée est chargée, puis écartée sans analyse.
 
 ### J2 — Règles RGAA et score
 

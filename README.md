@@ -4,7 +4,7 @@ Rampe est un outil de pré-audit d'accessibilité web pour les PME françaises. 
 
 Un test automatique ne prouve jamais la conformité au RGAA : Rampe parle de « pré-audit automatique » et indique toujours ce qui reste à vérifier à la main.
 
-**État du projet :** jalon J0, le squelette. L'application démarre et affiche l'état de ses services ; le moteur de scan arrive au jalon J1. Voir [PLAN.md](PLAN.md).
+**État du projet :** jalon J1, le moteur de scan. Il explore un site, l'analyse avec axe-core et produit un rapport ; l'API qui l'enregistrera arrive au jalon J3. Voir [PLAN.md](PLAN.md).
 
 ## Lancer l'application
 
@@ -22,6 +22,16 @@ docker compose up --build
 | http://127.0.0.1:8025               | Boîte de réception locale (Mailpit) |
 
 Aucune configuration n'est nécessaire. Les identifiants par défaut sont réservés au poste de développement ; [.env.example](.env.example) explique comment les changer.
+
+## Scanner un site
+
+Une fois l'application lancée, cette commande scanne le site de test, qui contient six erreurs d'accessibilité volontaires, et affiche le rapport en JSON (environ 45 secondes) :
+
+```sh
+docker compose exec worker node dist/scan-cli.js http://fixture-site/
+```
+
+Le robot ne sort que par le proxy de sortie, qui refuse toute adresse non publique. Le site de test fait exception, en développement seulement, parce qu'il tourne sur une adresse privée de Docker.
 
 ## Développer
 

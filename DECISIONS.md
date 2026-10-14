@@ -82,3 +82,57 @@ Chaque choix technique de Rampe et sa raison. Une décision qu'on change n'est p
 **Une branche par jalon, fusionnée dans `main` après validation.** `main` ne contient que des jalons validés.
 
 **Un Dockerfile unique à plusieurs cibles.** Les dépendances sont installées et le dépôt compilé une seule fois pour toutes les images.
+
+## Jalon J1, 14 octobre 2026
+
+### Protection SSRF
+
+**Un proxy de sortie unique, sur le chemin réseau.** Le navigateur et le worker n'ont aucune route vers l'extérieur ; tout passe par `egress-proxy`. Vérifier une URL avant de naviguer ne suffirait pas : Chromium résout lui-même les noms, suit les redirections et charge des sous-ressources, et l'interception de Playwright ne voit que la première URL d'une chaîne de redirections.
+
+**Une liste blanche d'adresses, pas une liste noire.** Seules passent les adresses que `ipaddr.js` classe `unicast`, c'est-à-dire publiques ordinaires. Tout le reste est refusé, y compris les formes IPv6 qui transportent une adresse IPv4 (encapsulée, NAT64, 6to4, Teredo) et les plages de documentation. Une plage oubliée est refusée plutôt qu'autorisée. Seules les formes canoniques sont acceptées (`1.1.1` ou `0x7f.1` sont refusées), après normalisation de l'hôte par l'analyseur d'URL WHATWG, comme le fait un navigateur.
+
+**Une seule résolution DNS, et la connexion part vers l'adresse vérifiée.** Toutes les adresses d'un nom doivent être publiques. Un changement de réponse DNS entre la vérification et la connexion (DNS rebinding) n'a donc pas d'effet. Le proxy préfère une adresse IPv4, car les réseaux Docker routent rarement l'IPv6 vers l'extérieur.
+
+**Une réponse muette pour la page, détaillée dans les journaux.** Une page scannée peut lire la réponse du proxy : elle reçoit « Blocked by the Rampe egress proxy. » et l'en-tête `x-rampe-egress: blocked`, jamais l'adresse interne en cause. Les journaux du proxy, en JSON, gardent l'hôte, le port, l'adresse et la raison, mais ni le chemin ni la requête, qui peuvent porter des données personnelles.
+
+**WebSockets par CONNECT seulement.** C'est ce qu'utilise Chromium derrière un proxy. Une mise à niveau sur une requête HTTP simple est refusée.
+
+### Navigateur isolé
+
+**Un conteneur `browser` construit sur l'image officielle de Playwright**, piloté par le worker via `chromium.launchServer` sur un chemin secret. Un test vérifie que la version de l'image suit celle de `playwright-core`.
+
+**Le bac à sable de Chromium reste actif.** Il faut trois choses : le profil seccomp de Playwright (celui de Docker interdit les espaces de noms), `cap_drop: ALL` puis `cap_add: SYS_CHROOT`, et rien sur l'hôte. `SYS_CHROOT` n'entre que dans l'ensemble limite : l'utilisateur `pwuser` n'a aucune capacité effective, et Chromium s'en sert dans l'espace de noms qu'il crée pour s'y enfermer. Un test vérifie que les processus de rendu tournent dans leur propre espace de noms utilisateur.
+
+Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.apparmor_restrict_unprivileged_userns`), et je l'avais levée sur la VM Colima. Un témoin a montré que la cause était `cap_drop: ALL` ; la VM a été remise dans son état d'origine. Aucun réglage d'hôte n'est nécessaire.
+
+**Un navigateur pour tous les scans, un contexte par scan.** Chaque scan a ses propres cookies et son propre stockage. Les fenêtres surgissantes sont fermées, les téléchargements et les service workers désactivés. WebRTC ne peut pas contourner le proxy en UDP.
+
+### Exploration
+
+**Débit (D1) : 1,1 s entre deux requêtes au même hôte, pour tous les scans.** La clé Valkey `rampe:politeness:<hôte>` vit un intervalle ; prendre son tour, c'est la créer (`SET … NX PX`). Le dixième de seconde de marge garde l'écart au-dessus d'une seconde côté serveur, malgré la gigue du réseau. robots.txt et les sitemaps comptent comme des navigations. Un `Crawl-delay` plus long est respecté.
+
+**robots.txt selon la RFC 9309.** Le robot suit le groupe de `RampeBot` s'il existe, sinon le groupe générique. Une erreur 4xx autorise tout ; une erreur 5xx ou l'absence de réponse interdit tout. `robots-parser` est chargé par `require()` avec un typage local, car ses définitions de types ne se résolvent pas sous NodeNext.
+
+**« Même domaine » signifie même origine** : même schéma, même hôte, même port que l'adresse scannée. C'est plus strict que « même hôte » prévu au plan : un lien en `http://` depuis un site en `https://` n'est pas suivi.
+
+**Sitemaps.** Le robot lit `/sitemap.xml` et ceux que robots.txt annonce, sur la même origine seulement : cinq documents, 1 000 pages et 10 Mo au plus. Les `<loc>` relatifs, hors protocole, sont ignorés. Les sitemaps compressés en gzip ne sont pas lus. Le format est assez simple pour se passer d'un analyseur XML.
+
+**La limite de pages compte les navigations, échecs compris** : elle borne ce que le robot demande au site. Les liens interdits par robots.txt et ceux d'autres sites ne comptent pas.
+
+**Une page = l'événement `load`, puis axe-core sur les règles WCAG 2.1 A et AA.** Le délai de 30 s couvre le chargement et l'analyse. Chaque échec devient un résultat (`timeout`, `blocked`, `http-error`, `not-html`, `redirected-off-site`, `navigation-failed`) : une mauvaise page n'arrête jamais le scan.
+
+**Le rapport ne garde que le nécessaire** : règle, gravité, critères WCAG, sélecteur et extrait HTML de 500 caractères au plus par élément, coupé sans casser un caractère. Les descriptions, résumés d'échec et textes de la page sont écartés, car ils peuvent contenir des données personnelles. Au-delà de 2 000 éléments en défaut, la page est marquée `truncated`. Pour les règles réussies ou indéterminées, seul l'identifiant est gardé.
+
+**Le format du rapport, dans `packages/shared`, est le contrat avec l'API du J3.** La commande de scan le valide avant de l'écrire.
+
+**Limite connue : une redirection vers un autre site est suivie par le navigateur.** La page d'arrivée est chargée, puis classée `redirected-off-site` sans être analysée. La protection SSRF n'est pas en cause : la destination passe par le proxy comme toute autre. Bloquer ce chargement demanderait d'intercepter chaque saut de redirection par le protocole de débogage de Chrome ; ce n'est pas fait.
+
+### Tests
+
+**Les critères d'acceptation du J1 sont des tests de bout en bout**, contre l'application lancée par Compose. Ils lisent le journal du site de test pour vérifier les manières du robot. Une marque déposée dans ce journal avant chaque scan délimite ses requêtes ; c'est plus sûr qu'un horodatage, car l'horloge de la machine de test et celle de l'hôte Docker peuvent différer.
+
+**La limite de 15 minutes est démontrée avec une limite de 5 secondes**, par le même chemin de code ; la valeur par défaut est vérifiée par un test unitaire.
+
+**Le site de test journalise aussi les requêtes abandonnées** (statut 0), pour que le test de parallélisme voie la page lente. Sa sonde de santé interroge `/__health`, que les tests écartent.
+
+**`axe-core` est une dépendance de développement du worker**, pour ses types seulement ; l'exécution utilise la copie qu'apporte `@axe-core/playwright`. Le `tsconfig` du worker inclut les types du DOM, nécessaires aux fonctions exécutées dans la page.

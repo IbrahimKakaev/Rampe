@@ -30,22 +30,23 @@ Il se clôt par un résumé (ce qui marche, comment le vérifier, ce qui reste, 
 
 Prérequis : Node 26, pnpm 12, Docker avec Compose.
 
-| Commande                                       | Effet                                                                                                                 |
-| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install`                                 | Installe les dépendances                                                                                              |
-| `docker compose up --build`                    | Lance toute l'application : interface sur http://127.0.0.1:8080                                                       |
-| `pnpm lint`                                    | ESLint, dont les règles d'accessibilité des gabarits Angular                                                          |
-| `pnpm format` / `pnpm format:check`            | Prettier                                                                                                              |
-| `pnpm typecheck`                               | Types de tout le dépôt, gabarits Angular compris                                                                      |
-| `pnpm test`                                    | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                                                     |
-| `pnpm test:integration`                        | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                                            |
-| `pnpm test:e2e`                                | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose                                     |
-| `pnpm build`                                   | Compile tous les paquets                                                                                              |
-| `pnpm audit --audit-level high`                | Vulnérabilités connues des dépendances                                                                                |
-| `pnpm licenses:check`                          | Refuse GPL, AGPL et toute licence inconnue                                                                            |
-| `pnpm --filter @rampe/api run test`            | Une commande dans un seul paquet                                                                                      |
-| `pnpm --filter @rampe/e2e run install-browser` | Installe Chromium pour les tests de bout en bout (une fois)                                                           |
-| `pnpm --filter @rampe/web start`               | Interface en rechargement à chaud sur http://localhost:4300 ; `/api` est relayé vers l'application lancée par Compose |
+| Commande                                                                | Effet                                                                                                                         |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install`                                                          | Installe les dépendances                                                                                                      |
+| `docker compose up --build`                                             | Lance toute l'application : interface sur http://127.0.0.1:8080                                                               |
+| `pnpm lint`                                                             | ESLint, dont les règles d'accessibilité des gabarits Angular                                                                  |
+| `pnpm format` / `pnpm format:check`                                     | Prettier                                                                                                                      |
+| `pnpm typecheck`                                                        | Types de tout le dépôt, gabarits Angular compris                                                                              |
+| `pnpm test`                                                             | Tests unitaires. `packages/rules` échoue sous 100 % de couverture                                                             |
+| `pnpm test:integration`                                                 | Tests contre de vrais PostgreSQL et Valkey (Testcontainers, Docker requis)                                                    |
+| `pnpm test:e2e`                                                         | Tests de bout en bout et d'accessibilité, contre l'application lancée par Compose                                             |
+| `pnpm build`                                                            | Compile tous les paquets                                                                                                      |
+| `pnpm audit --audit-level high`                                         | Vulnérabilités connues des dépendances                                                                                        |
+| `pnpm licenses:check`                                                   | Refuse GPL, AGPL et toute licence inconnue                                                                                    |
+| `pnpm --filter @rampe/api run test`                                     | Une commande dans un seul paquet                                                                                              |
+| `pnpm --filter @rampe/e2e run install-browser`                          | Installe Chromium pour les tests de bout en bout (une fois)                                                                   |
+| `pnpm --filter @rampe/web start`                                        | Interface en rechargement à chaud sur http://localhost:4300 ; `/api` est relayé vers l'application lancée par Compose         |
+| `docker compose exec worker node dist/scan-cli.js http://fixture-site/` | Scanne un site et affiche le rapport en JSON ; options `--max-pages`, `--max-depth`, `--page-timeout-ms`, `--scan-timeout-ms` |
 
 ## Structure
 
@@ -53,18 +54,24 @@ Prérequis : Node 26, pnpm 12, Docker avec Compose.
 apps/
   web/            Angular 22, interface en français, servie par nginx
   api/            NestJS 12 : REST, OpenAPI, accès à PostgreSQL
-  worker/         consommateur des files BullMQ ; accueillera le moteur de scan (J1)
-  fixture-site/   site de test aux erreurs d'accessibilité volontaires
+  worker/         moteur de scan et ses trois points d'entrée :
+                    dist/main.js                 consommateur des files BullMQ
+                    dist/scan-cli.js             commande de scan (jusqu'à l'API, J3)
+                    dist/egress/main.js          proxy de sortie, garde SSRF (conteneur egress-proxy)
+                    dist/browser-server/main.js  Chromium isolé (conteneur browser)
+  fixture-site/   site de test aux erreurs volontaires ; defects.json les liste
 packages/
   rules/          règles RGAA et calcul des scores : code pur, sans I/O, couvert à 100 %
   shared/         schémas de validation et types partagés par toutes les applications
 e2e/              tests Playwright de bout en bout, avec axe-core
 test-support/     démarrage des conteneurs pour les tests d'intégration
-docker/           Dockerfile unique (une cible par image) et configuration nginx
+docker/           Dockerfile unique (une cible par image), nginx, profil seccomp de Chromium
 scripts/          contrôle des licences
 ```
 
-Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valkey), `sandbox` (navigateur de scan, J1), `egress` (sortie vers Internet, J1). Les réseaux `data`, `queue` et `sandbox` n'ont pas de route vers l'extérieur. Le worker n'a ni accès ni identifiants vers PostgreSQL.
+Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valkey), `sandbox` (worker, navigateur et proxy de sortie), `egress` (proxy de sortie et site de test). Les réseaux `data`, `queue` et `sandbox` n'ont pas de route vers l'extérieur. Le worker n'a ni accès ni identifiants vers PostgreSQL. Le navigateur ne joint que le proxy de sortie, qui seul sort vers Internet.
+
+**Chemin d'une requête du robot.** Chromium (conteneur `browser`) et le worker (robots.txt, sitemaps) envoient tout au proxy `egress-proxy`. Celui-ci n'accepte que http et https, ports 80 et 443, résout le nom une fois, refuse toute adresse non publique et se connecte à l'adresse qu'il a vérifiée. Ne jamais donner au navigateur ou au worker une autre route vers l'extérieur.
 
 ## Conventions
 
@@ -82,7 +89,8 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 
 - Unitaires : `*.spec.ts` à côté du code testé.
 - Intégration : `test/*.int-spec.ts`, contre de vrais services démarrés par `test-support/containers.ts`, sur les images exactes de `docker-compose.yml`.
-- Bout en bout : `e2e/tests/`, contre l'application lancée par Compose. Toute nouvelle page y reçoit un contrôle `expectNoAccessibilityViolations`.
+- Bout en bout : `e2e/tests/`, contre l'application lancée par Compose. Toute nouvelle page y reçoit un contrôle `expectNoAccessibilityViolations`. Les tests du moteur de scan pilotent les conteneurs avec `e2e/tests/support/compose.ts` et lisent le journal du site de test pour vérifier le comportement du robot.
+- Site de test : toute erreur volontaire ajoutée est déclarée dans `apps/fixture-site/defects.json` ; les autres pages doivent rester sans violation, un test le vérifie.
 - Jest tourne en modules ES : importer `describe`, `it`, `expect` et `jest` depuis `@jest/globals`. `jest.mock` ne fonctionne pas dans ce mode ; on injecte les dépendances et on passe des doublures.
 - Un test porte le nom du comportement attendu, pas celui de la fonction.
 
