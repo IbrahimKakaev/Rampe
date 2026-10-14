@@ -10,7 +10,7 @@
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "tsc -p tsconfig.json && pnpm -r run typecheck",
-    "lint": "eslint .",
+    "lint": "pnpm --filter @rampe/api run prisma:generate >/dev/null && eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r --filter \"!@rampe/e2e\" run test",
