@@ -283,13 +283,22 @@ Monorepo pnpm, TypeScript strict, ESLint, Prettier, Jest, squelettes des trois a
 
 Critères d'acceptation :
 
-- [ ] `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` et `pnpm build` passent à la racine.
-- [ ] Depuis un clone neuf, `docker compose up` affiche la page d'accueil en français, et `/api/v1/health` rapporte l'état de la base et de la file.
-- [ ] Un test d'intégration prouve que BullMQ fonctionne sur Valkey : job simple, job différé, job planifié (D2).
-- [ ] La CI exécute lint, formatage, types, tests, build, audit des dépendances et contrôle des licences, et échoue sur GPL, AGPL ou licence inconnue.
-- [ ] Le seuil de couverture de `packages/rules` est fixé à 100 % et bloque la CI.
-- [ ] La page d'accueil passe axe sans violation, en CI.
-- [ ] La CI est au vert sur GitHub (D8).
+- [x] `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` et `pnpm build` passent à la racine.
+- [x] Depuis un clone neuf, `docker compose up` affiche la page d'accueil en français, et `/api/v1/health` rapporte l'état de la base et de la file.
+- [x] Un test d'intégration prouve que BullMQ fonctionne sur Valkey : job simple, job différé, job planifié (D2).
+- [ ] La CI exécute lint, formatage, types, tests, build, audit des dépendances et contrôle des licences, et échoue sur GPL, AGPL ou licence inconnue. _Workflow écrit ; chaque commande passe en local et le refus d'une licence GPL est vérifié sur une entrée simulée. Pas encore exécuté sur GitHub._
+- [x] Le seuil de couverture de `packages/rules` est fixé à 100 % et bloque la CI. _Vérifié en local : la commande de test échoue dès qu'une fonction n'est pas couverte._
+- [ ] La page d'accueil passe axe sans violation, en CI. _Vrai en local, contre l'application lancée par Compose. Pas encore exécuté sur GitHub._
+- [ ] La CI est au vert sur GitHub (D8). _En attente du dépôt distant._
+
+Écarts au plan constatés pendant le jalon :
+
+- Le fichier Compose contient sept services et les cinq réseaux. Les services `browser` et `egress-proxy` arrivent au J1 avec leur code, plutôt que sous forme de coquilles vides.
+- La validation et la documentation OpenAPI s'appuient sur le support natif de NestJS 12, pas sur un composant maison.
+- Tous les schémas utilisent `zod/mini` : la version complète de Zod faisait passer le paquet de l'interface de 250 kB à 692 kB.
+- `packages/rules` contient déjà le calcul du score de pré-audit, pour que le seuil de 100 % porte sur du vrai code. Le reste du paquet vient au J2.
+- L'API joint PostgreSQL avec le pilote `pg` ; Prisma arrive au J3 avec le schéma, comme prévu.
+- Docker tourne sur ton poste avec Colima, pas Docker Desktop. Les tests d'intégration s'y adaptent seuls.
 
 ### J1 — Moteur de scan et site de test
 
