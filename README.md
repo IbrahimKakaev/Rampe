@@ -25,14 +25,20 @@ Aucune configuration n'est nécessaire. Les identifiants par défaut sont réser
 
 ## Développer
 
-Il faut Node 26 et pnpm 12.
+Il faut Node 26 et pnpm 12. Les tests d'intégration démarrent de vrais PostgreSQL et Valkey : Docker doit tourner.
 
 ```sh
 pnpm install
-pnpm lint && pnpm typecheck && pnpm test
-pnpm test:integration   # démarre de vrais PostgreSQL et Valkey, Docker requis
-pnpm --filter @rampe/e2e run install-browser   # une fois
-pnpm test:e2e           # contre l'application lancée par docker compose
+pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm test:integration && pnpm build
+```
+
+Les tests de bout en bout visent l'application lancée par Docker Compose. La deuxième ligne n'est utile qu'une fois, pour installer Chromium :
+
+```sh
+docker compose up --build --detach --wait
+pnpm --filter @rampe/e2e run install-browser
+pnpm test:e2e
+docker compose down
 ```
 
 Les conventions, toutes les commandes et la structure du dépôt sont dans [CLAUDE.md](CLAUDE.md). Les choix techniques et leurs raisons sont dans [DECISIONS.md](DECISIONS.md).
