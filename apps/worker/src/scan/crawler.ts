@@ -56,7 +56,8 @@ export async function crawl(input: CrawlInput, deps: CrawlDependencies): Promise
   const skipped = { disallowedByRobots: 0, beyondLimits: 0 };
   if (!robots.isAllowed(site)) {
     clearTimeout(timer);
-    return { status: 'failed', reason: 'disallowed-by-robots', pages: [], skipped };
+    const reason = robots.reachable ? 'disallowed-by-robots' : 'site-unreachable';
+    return { status: 'failed', reason, pages: [], skipped };
   }
 
   const frontier: PageToVisit[] = [{ url: site, depth: 0 }];

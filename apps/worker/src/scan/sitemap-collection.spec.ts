@@ -23,6 +23,7 @@ const robots = (sitemaps: string[] = [], disallowed = ''): RobotsPolicy => ({
   isAllowed: (url) => disallowed === '' || !url.pathname.startsWith(disallowed),
   crawlDelayMs: null,
   sitemaps,
+  reachable: true,
 });
 
 describe('collectSitemapPages', () => {

@@ -1,5 +1,7 @@
 import { fetch, ProxyAgent } from 'undici';
 
+import { EGRESS_HEADER } from '../egress/egress-proxy.js';
+
 export interface FetchedText {
   readonly status: number;
   /** Where the request landed after redirects. */
@@ -7,7 +9,10 @@ export interface FetchedText {
   readonly body: string;
 }
 
-/** Fetches a small text resource; `null` when it cannot be fetched or is larger than `maxBytes`. */
+/**
+ * Fetches a small text resource. `null` when it cannot be fetched, when the
+ * egress proxy refused the destination, or when it is larger than `maxBytes`.
+ */
 export type TextFetcher = (url: string, maxBytes: number) => Promise<FetchedText | null>;
 
 /**
@@ -30,6 +35,11 @@ export function createProxiedFetcher(options: {
           redirect: 'follow',
           signal: AbortSignal.timeout(options.timeoutMs),
         });
+        // An answer of the proxy itself is not the site's: the resource could not be reached.
+        if (response.headers.get(EGRESS_HEADER) !== null) {
+          await response.body?.cancel();
+          return null;
+        }
         const chunks: Uint8Array[] = [];
         let size = 0;
         // undici types the chunks as any; the Fetch standard makes them Uint8Array.

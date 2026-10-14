@@ -186,6 +186,35 @@ test.describe('scan limits', () => {
   });
 });
 
+test.describe('internal addresses given as the target', () => {
+  for (const target of [
+    'http://169.254.169.254/',
+    'http://api/',
+    'http://127.0.0.1/',
+    'http://[::1]/',
+  ]) {
+    test(`refuses to scan ${target}: nothing is fetched, the site is reported unreachable`, async () => {
+      const report = await scan(target);
+
+      expect(report).toMatchObject({ status: 'failed', reason: 'site-unreachable', pages: [] });
+    });
+  }
+
+  test('refuses a target on another port than 80 or 443 before doing anything', async () => {
+    const result = await compose([
+      'exec',
+      '-T',
+      'worker',
+      'node',
+      'dist/scan-cli.js',
+      'http://api:3000/',
+    ]);
+
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain('port 80 or 443');
+  });
+});
+
 test.describe('isolation of the browser', () => {
   test('cannot reach the database, the queue, the API, the interface or the Internet', async () => {
     const reachability = JSON.parse(

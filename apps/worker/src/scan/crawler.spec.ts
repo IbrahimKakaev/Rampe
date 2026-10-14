@@ -31,6 +31,7 @@ const allowAllButPrivate: RobotsPolicy = {
   isAllowed: (url) => !url.pathname.startsWith('/prive/'),
   crawlDelayMs: null,
   sitemaps: [],
+  reachable: true,
 };
 
 function analyzed(url: string, depth: number): PageResult {
@@ -235,7 +236,12 @@ describe('crawl', () => {
 
   it('gives up before any navigation when robots.txt forbids the home page', async () => {
     const browser = fakeBrowser();
-    const forbidAll: RobotsPolicy = { isAllowed: () => false, crawlDelayMs: null, sitemaps: [] };
+    const forbidAll: RobotsPolicy = {
+      isAllowed: () => false,
+      crawlDelayMs: null,
+      sitemaps: [],
+      reachable: true,
+    };
 
     const outcome = await crawl(
       { site: SITE, sitemapPages: [], robots: forbidAll, limits: limits() },
@@ -248,6 +254,24 @@ describe('crawl', () => {
       pages: [],
       skipped: { disallowedByRobots: 0, beyondLimits: 0 },
     });
+    expect(browser.visits).toEqual([]);
+  });
+
+  it('says the site is unreachable, rather than forbidden, when robots.txt could not be obtained', async () => {
+    const browser = fakeBrowser();
+    const unreachable: RobotsPolicy = {
+      isAllowed: () => false,
+      crawlDelayMs: null,
+      sitemaps: [],
+      reachable: false,
+    };
+
+    const outcome = await crawl(
+      { site: SITE, sitemapPages: [], robots: unreachable, limits: limits() },
+      browser.deps,
+    );
+
+    expect(outcome).toMatchObject({ status: 'failed', reason: 'site-unreachable', pages: [] });
     expect(browser.visits).toEqual([]);
   });
 

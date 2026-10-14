@@ -106,7 +106,13 @@ export const scanReportSchema = z.strictObject({
   status: scanStatusSchema,
   /** Why a failed scan failed, or why a scan stopped before the end of its frontier. */
   reason: z.nullable(
-    z.enum(['disallowed-by-robots', 'home-page-failed', 'page-limit', 'scan-timeout']),
+    z.enum([
+      'site-unreachable',
+      'disallowed-by-robots',
+      'home-page-failed',
+      'page-limit',
+      'scan-timeout',
+    ]),
   ),
   startedAt: z.iso.datetime(),
   finishedAt: z.iso.datetime(),

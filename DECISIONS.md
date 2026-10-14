@@ -113,6 +113,8 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 
 **robots.txt selon la RFC 9309.** Le robot suit le groupe de `RampeBot` s'il existe, sinon le groupe générique. Une erreur 4xx autorise tout ; une erreur 5xx ou l'absence de réponse interdit tout. `robots-parser` est chargé par `require()` avec un typage local, car ses définitions de types ne se résolvent pas sous NodeNext.
 
+**Un refus du proxy vaut absence de réponse, pas réponse du site.** Sans cela, le 403 du proxy sur le robots.txt d'une adresse interne aurait été lu comme une erreur 4xx du site, c'est-à-dire « tout est permis ». Le scan ne serait pas allé plus loin, puisque le proxy bloque aussi la page, mais l'interprétation aurait été fausse. Le scan échoue alors avec la raison `site-unreachable`, distincte de `disallowed-by-robots` : le client doit savoir si son site n'a pas répondu ou s'il interdit le robot.
+
 **« Même domaine » signifie même origine** : même schéma, même hôte, même port que l'adresse scannée. C'est plus strict que « même hôte » prévu au plan : un lien en `http://` depuis un site en `https://` n'est pas suivi.
 
 **Sitemaps.** Le robot lit `/sitemap.xml` et ceux que robots.txt annonce, sur la même origine seulement : cinq documents, 1 000 pages et 10 Mo au plus. Les `<loc>` relatifs, hors protocole, sont ignorés. Les sitemaps compressés en gzip ne sont pas lus. Le format est assez simple pour se passer d'un analyseur XML.

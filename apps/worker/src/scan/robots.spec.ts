@@ -75,12 +75,26 @@ describe('robotsPolicyFrom', () => {
     },
   );
 
-  it.each([500, 503])('disallows everything when the server fails (%i)', (status) => {
-    expect(robotsPolicyFrom(ROBOTS_URL, { status, body: '' }).isAllowed(page('/'))).toBe(false);
-  });
+  it.each([500, 503])(
+    'disallows everything when the server fails (%i), and says it is unreachable',
+    (status) => {
+      const policy = robotsPolicyFrom(ROBOTS_URL, { status, body: '' });
+
+      expect(policy.isAllowed(page('/'))).toBe(false);
+      expect(policy.reachable).toBe(false);
+    },
+  );
 
   it('disallows everything when robots.txt cannot be fetched at all', () => {
-    expect(robotsPolicyFrom(ROBOTS_URL, null).isAllowed(page('/'))).toBe(false);
+    const policy = robotsPolicyFrom(ROBOTS_URL, null);
+
+    expect(policy.isAllowed(page('/'))).toBe(false);
+    expect(policy.reachable).toBe(false);
+  });
+
+  it('says the site is reachable when it answered', () => {
+    expect(robotsPolicyFrom(ROBOTS_URL, { status: 200, body: '' }).reachable).toBe(true);
+    expect(robotsPolicyFrom(ROBOTS_URL, { status: 404, body: '' }).reachable).toBe(true);
   });
 
   it('disallows everything after an unexpected status', () => {

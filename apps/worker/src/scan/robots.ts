@@ -24,10 +24,22 @@ export interface RobotsPolicy {
   readonly crawlDelayMs: number | null;
   /** Sitemaps the site announces. */
   readonly sitemaps: readonly string[];
+  /** False when robots.txt could not be obtained at all: the site did not answer, or failed. */
+  readonly reachable: boolean;
 }
 
-const allowAll: RobotsPolicy = { isAllowed: () => true, crawlDelayMs: null, sitemaps: [] };
-const disallowAll: RobotsPolicy = { isAllowed: () => false, crawlDelayMs: null, sitemaps: [] };
+const allowAll: RobotsPolicy = {
+  isAllowed: () => true,
+  crawlDelayMs: null,
+  sitemaps: [],
+  reachable: true,
+};
+const unreachable: RobotsPolicy = {
+  isAllowed: () => false,
+  crawlDelayMs: null,
+  sitemaps: [],
+  reachable: false,
+};
 
 /**
  * Reads the answer to a request for /robots.txt, following RFC 9309:
@@ -41,13 +53,13 @@ export function robotsPolicyFrom(
   answer: { readonly status: number; readonly body: string } | null,
 ): RobotsPolicy {
   if (answer === null || answer.status >= 500) {
-    return disallowAll;
+    return unreachable;
   }
   if (answer.status >= 400) {
     return allowAll;
   }
   if (answer.status < 200 || answer.status >= 300) {
-    return disallowAll;
+    return unreachable;
   }
   const robots = robotsParser(robotsUrl, answer.body);
   const crawlDelay = robots.getCrawlDelay(ROBOTS_TOKEN);
@@ -59,5 +71,6 @@ export function robotsPolicyFrom(
         ? crawlDelay * 1000
         : null,
     sitemaps: robots.getSitemaps(),
+    reachable: true,
   };
 }
