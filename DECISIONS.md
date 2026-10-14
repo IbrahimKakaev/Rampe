@@ -195,3 +195,63 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 **La commande de scan écrit chaque étape, horodatée, sur la sortie d'erreur** (robots.txt, sitemaps, connexion au navigateur, chaque page, fermeture). Les tests de bout en bout l'affichent quand un scan échoue ou dépasse son délai.
 
 **Les tests de bout en bout ferment l'entrée standard de `docker compose exec`.** La commande la transmet toujours au conteneur. Pendant le J2, la suite complète s'est bloquée deux fois sur le même test, que rien d'autre ne reproduisait, ni à la main ni isolé. Depuis cette correction, trois passages complets consécutifs ont réussi. C'est la cause la plus probable, sans preuve formelle.
+
+## Jalon J3, 14 octobre 2026
+
+### Données
+
+**Prisma 7.10 sur PostgreSQL, avec l'adaptateur `pg`.** Le client est généré en TypeScript dans `apps/api/src/generated/`, jamais versionné : la vérification des types, les tests et le build le régénèrent. Les migrations sont versionnées dans `apps/api/prisma/migrations` et appliquées par un service `migrate` avant que l'API démarre. Le moteur de migration est téléchargé à la construction de l'image, car le réseau de la base n'a pas de sortie.
+
+**Toute table d'une organisation porte `organization_id`, avec suppression en cascade.** La suppression d'une organisation efface tout ce qui lui appartient ; un test le vérifie table par table, en lisant le schéma de la base.
+
+**Identifiants UUID v7**, générés par Prisma : triés dans le temps, sans révéler de compteur.
+
+### Authentification
+
+**Sessions en base, dans un cookie `HttpOnly`, `SameSite=Lax`.** Seul le hachage SHA-256 du jeton est stocké, comme pour les jetons envoyés par e-mail. Une session dure 7 jours. Une réinitialisation de mot de passe les ferme toutes. `Secure` est obligatoire en production ; seule l'application locale, servie en HTTP, s'en passe.
+
+**Protection CSRF par double cookie, le schéma que l'`HttpClient` d'Angular gère tout seul :** le cookie lisible `XSRF-TOKEN` doit être répété dans l'en-tête `X-XSRF-TOKEN` de toute requête qui modifie quelque chose.
+
+**argon2id avec les réglages par défaut de la bibliothèque** (64 Mio, 3 passes), au-dessus du minimum de l'OWASP. Une connexion avec une adresse inconnue vérifie quand même un hachage, pour durer autant qu'avec une adresse connue.
+
+**Aucune réponse ne révèle si une adresse a un compte.** L'inscription et la demande de réinitialisation répondent toujours 202. Une adresse déjà inscrite reçoit un rappel par e-mail.
+
+**L'inscription crée aussi l'organisation**, dont la personne devient propriétaire : une PME commence ainsi en une étape.
+
+**Limitation de débit maison, dans Valkey, au lieu de `@nestjs/throttler`.** Ce paquet, en CommonJS, importe NestJS, en modules ES : Node l'accepte, mais Jest refuse ce cycle de chargement. Le garde fait une soixantaine de lignes et un script Lua atomique ; les compteurs sont partagés entre instances. Les routes d'authentification tolèrent 10 essais par minute et par adresse IP, puis bloquent 5 minutes. Sans Valkey, l'API répond 503 plutôt que de laisser passer des tentatives sans limite ; seule la route de santé n'est pas limitée.
+
+**`trust proxy` vaut 1** : exactement un proxy, nginx, précède l'API, et son `X-Forwarded-For` donne l'adresse du client.
+
+### Organisations et isolation
+
+**Un garde global contrôle chaque route qui a un paramètre `:org`** et répond 404 à un non-membre, comme pour une organisation inexistante. Les services filtrent ensuite chaque requête sur l'organisation. Un test lit toutes les routes dans l'OpenAPI et appelle chacune comme membre d'une autre organisation : d'abord sur l'organisation d'autrui, puis sur la sienne avec les identifiants d'autrui. Une route ajoutée plus tard est couverte d'office, et un paramètre de chemin inconnu du test le fait échouer.
+
+**Une organisation garde toujours au moins un propriétaire.** Une invitation n'est acceptable que par le compte qui a l'adresse invitée.
+
+### Sites et vérification de propriété
+
+**DNS : un enregistrement TXT `_rampe-verification.<hôte>` de valeur `rampe-verification=<jeton>`.** Un nom dédié évite de toucher aux enregistrements existants et fonctionne même sous un CNAME. L'API lit le DNS elle-même : cela n'ouvre aucune connexion vers le site.
+
+**Fichier : `/.well-known/rampe-verification.txt`, lu par le worker à travers le proxy de sortie.** L'API ne se connecte jamais au site d'un client. Elle dépose une demande dans la file `site-checks` et attend la réponse, 30 s au plus.
+
+**La preuve est revérifiée avant chaque scan.** Si elle a disparu, le site redevient « non vérifié » et le scan est refusé.
+
+### Scans
+
+**Le worker publie un message par page, puis un message de clôture, dans la file `scan-events`.** Aucun message n'est gros, quelle que soit la taille du site. Les identifiants de message dérivent de celui du scan, donc un message reçu deux fois n'est enregistré qu'une fois. La clôture est rejetée tant que toutes les pages ne sont pas enregistrées, et la file la retente avec un délai croissant. Un plantage du moteur est publié aussi : un scan ne reste jamais « en cours » pour toujours.
+
+**L'API interprète, le worker ne fait que rapporter.** Correspondance RGAA, empreintes, score et comparaison avec le scan précédent sont calculés à l'enregistrement, avec `packages/rules`. Le message du worker est validé par son schéma : il franchit une frontière de confiance.
+
+**Un seul scan à la fois par site, et par worker.** Le navigateur est la ressource rare.
+
+### Robustesse
+
+**Les files BullMQ de l'API écoutent leurs erreurs.** Sans écouteur, la première coupure de Valkey aurait arrêté l'API : un test d'intégration l'a révélé.
+
+**Toute fermeture de connexion est bornée dans le temps.** Un client dont le serveur a disparu peut ne jamais finir de se fermer ; il ne doit pas empêcher le processus de s'arrêter.
+
+**Les pannes se simulent en mettant les conteneurs en pause**, pas en les arrêtant : c'est une vraie panne vue des clients, dont on teste aussi le retour.
+
+### Démonstration
+
+**`docker compose up` prépare la démonstration avec un script séparé, `seed-demo`, qui refuse de tourner en production.** Il crée le compte `demo@rampe.local` et le site de test, puis passe par la vraie API : connexion, vérification de propriété par le fichier (que le site de test sert avec un jeton de démonstration), lancement du scan. Rien n'est factice dans le résultat : c'est un vrai scan.

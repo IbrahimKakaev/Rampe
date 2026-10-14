@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 et J1 validés et fusionnés dans `main`. Jalon J2 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J2 validés et fusionnés dans `main`. Jalon J3 réalisé, en attente de validation.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -352,14 +352,22 @@ Schéma Prisma et migrations, authentification, organisations, invitations, site
 
 Critères d'acceptation :
 
-- [ ] Inscription, confirmation, connexion, déconnexion et réinitialisation fonctionnent de bout en bout, e-mails reçus dans Mailpit.
-- [ ] Le test générique d'isolation passe sur toutes les routes de l'OpenAPI. Les droits `owner` et `member` sont testés route par route.
-- [ ] Un scan est refusé tant que le site n'est pas vérifié. Les deux méthodes sont testées, y compris jeton faux, fichier absent et enregistrement DNS absent.
-- [ ] La limitation de débit bloque les tentatives répétées de connexion et de réinitialisation. Les en-têtes de sécurité sont présents.
-- [ ] Toute entrée invalide reçoit une réponse 400 décrite dans l'OpenAPI.
-- [ ] Un scan déclenché par l'API est enregistré avec ses pages, ses défauts, ses critères RGAA et son score.
-- [ ] L'OpenAPI décrit tous les endpoints et sert de contrat aux tests.
-- [ ] `docker compose up` crée le compte de démonstration et le site de test, vérifié et scanné pour de vrai.
+- [x] Inscription, confirmation, connexion, déconnexion et réinitialisation fonctionnent de bout en bout, e-mails reçus dans Mailpit.
+- [x] Le test générique d'isolation passe sur toutes les routes de l'OpenAPI. Les droits `owner` et `member` sont testés route par route. _Chaque route est appelée deux fois : sur l'organisation d'autrui, et sur la sienne avec les identifiants d'autrui._
+- [x] Un scan est refusé tant que le site n'est pas vérifié. Les deux méthodes sont testées, y compris jeton faux, fichier absent et enregistrement DNS absent. _La preuve est aussi revérifiée avant chaque scan._
+- [x] La limitation de débit bloque les tentatives répétées de connexion et de réinitialisation. Les en-têtes de sécurité sont présents.
+- [x] Toute entrée invalide reçoit une réponse 400 décrite dans l'OpenAPI.
+- [x] Un scan déclenché par l'API est enregistré avec ses pages, ses défauts, ses critères RGAA et son score. _Ainsi que la comparaison avec le scan précédent._
+- [x] L'OpenAPI décrit tous les endpoints et sert de contrat aux tests. _Le test d'isolation lit ses routes dans l'OpenAPI._
+- [x] `docker compose up` crée le compte de démonstration et le site de test, vérifié et scanné pour de vrai.
+
+Écarts au plan constatés pendant le jalon :
+
+- La limitation de débit est un garde maison sur Valkey, au lieu de `@nestjs/throttler`, que Jest ne sait pas charger avec NestJS 12.
+- L'inscription crée aussi l'organisation de la personne : une PME commence en une étape.
+- Les invitations, prévues au modèle de données, sont livrées avec leur parcours complet.
+- Deux dépendances de la CLI Prisma sont forcées à leur version corrigée (`mysql2`, `deepmerge-ts`), et la licence EPL-2.0 est acceptée pour `elkjs`, un composant de Prisma Studio que Rampe n'exécute pas.
+- Un vrai défaut a été trouvé et corrigé : sans écouteur d'erreurs sur ses files, l'API se serait arrêtée à la première coupure de Valkey.
 
 ### J4 — Tableau de bord
 

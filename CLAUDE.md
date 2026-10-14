@@ -54,7 +54,11 @@ Prérequis : Node 26, pnpm 12, Docker avec Compose.
 ```
 apps/
   web/            Angular 22, interface en français, servie par nginx
-  api/            NestJS 12 : REST, OpenAPI, accès à PostgreSQL
+  api/            NestJS 12 : REST, OpenAPI, Prisma, e-mails
+                    prisma/schema.prisma       modèle de données ; migrations dans prisma/migrations
+                    src/security/              session, CSRF, gardes d'organisation, limitation de débit
+                    src/scans/scan-recorder.ts enregistre ce que publie le worker
+                    src/seed-demo.ts           démonstration locale, refusé en production
   worker/         moteur de scan et ses trois points d'entrée :
                     dist/main.js                 consommateur des files BullMQ
                     dist/scan-cli.js             commande de scan (jusqu'à l'API, J3)
@@ -93,6 +97,15 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 **Validation.** Toujours `import * as z from 'zod/mini'`, jamais `'zod'` : la version complète ajoute environ 450 kB au paquet du navigateur. ESLint le refuse. Les schémas partagés vivent dans `packages/shared`. NestJS 12 valide et documente nativement à partir de ces schémas (`standardSchema`).
 
 **Configuration.** Chaque service valide son environnement une fois au démarrage avec `parseEnv`, et ne lit `process.env` nulle part ailleurs. Toute variable nouvelle est ajoutée à `.env.example`.
+
+**API.**
+
+- Toute route exige une session, sauf celles marquées `@Public()`. Toute route sous `orgs/:org` passe par le garde d'organisation ; les actions de gestion portent `@OwnerOnly()`.
+- Toute requête Prisma sur des données d'organisation filtre sur `organizationId`. Le test `isolation.int-spec.ts` doit rester vert ; s'il échoue sur un paramètre inconnu, donnez-lui une ressource de ce type.
+- Entrées et réponses se décrivent avec les schémas de `@rampe/shared/api` : `@Body({ schema })`, `@Param('x', { schema })`, `@ApiOkResponse({ standardSchema })`.
+- Les messages d'erreur destinés à l'utilisateur sont en français. Ils ne révèlent jamais si une ressource existe ailleurs.
+- L'API ne se connecte jamais à un site client : elle passe par le worker et le proxy de sortie.
+- Un changement du modèle de données passe par une migration : `pnpm --filter @rampe/api run migrate:create`, avec une base PostgreSQL jetable dans `DATABASE_URL`.
 
 **Tests.**
 
