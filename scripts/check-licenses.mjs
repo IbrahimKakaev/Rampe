@@ -41,7 +41,8 @@ const EXCEPTIONS = [
     // EPL-2.0 is, like MPL-2.0, a copyleft limited to the package's own files.
     license: 'EPL-2.0',
     packages: /^elkjs$/,
-    reason: 'graph layout of Prisma Studio, part of the Prisma CLI; Rampe never runs it, unmodified',
+    reason:
+      'graph layout of Prisma Studio, part of the Prisma CLI; Rampe never runs it, unmodified',
   },
 ];
 
