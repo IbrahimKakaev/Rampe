@@ -2,6 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { healthResponseSchema } from '@rampe/shared';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import request from 'supertest';
 
 import {
@@ -12,6 +15,29 @@ import {
 import { AppModule } from '../src/app.module.js';
 import { setupApp } from '../src/app.setup.js';
 import { loadConfig } from '../src/config/app-config.js';
+
+/**
+ * Pausing a container freezes it: its clients get no answer, as in a real
+ * outage, and recover when it resumes.
+ */
+async function docker(action: 'pause' | 'unpause', containerId: string): Promise<void> {
+  await promisify(execFile)('docker', [action, containerId]);
+}
+
+async function eventually(check: () => Promise<void>, timeoutMs = 15_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      await check();
+      return;
+    } catch (error) {
+      if (Date.now() > deadline) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+}
 
 /** The part of the OpenAPI document these tests read. */
 interface OpenApiDocument {
@@ -32,12 +58,14 @@ describe('GET /api/v1/health against real PostgreSQL and Valkey', () => {
       NODE_ENV: 'test',
       DATABASE_URL: postgres.url,
       VALKEY_URL: valkey.url,
+      SMTP_URL: 'smtp://127.0.0.1:1025',
+      PUBLIC_URL: 'http://127.0.0.1:8080',
     });
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule.register(config)],
     }).compile();
     app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
-    setupApp(app);
+    setupApp(app, { secureCookies: false });
     await app.init();
   });
 
@@ -77,25 +105,25 @@ describe('GET /api/v1/health against real PostgreSQL and Valkey', () => {
     }
   });
 
-  it('answers 503 and names the queue once Valkey is stopped', async () => {
-    await valkey.container.stop();
+  it('answers 503 and names the queue while Valkey does not answer, then recovers', async () => {
+    await docker('pause', valkey.container.getId());
+    const during = await request(app.getHttpServer()).get('/api/v1/health').expect(503);
+    await docker('unpause', valkey.container.getId());
 
-    const response = await request(app.getHttpServer()).get('/api/v1/health').expect(503);
-
-    expect(response.body).toEqual({
-      status: 'degraded',
-      checks: { database: 'up', queue: 'down' },
+    expect(during.body).toEqual({ status: 'degraded', checks: { database: 'up', queue: 'down' } });
+    await eventually(async () => {
+      await request(app.getHttpServer()).get('/api/v1/health').expect(200);
     });
   });
 
-  it('answers 503 and names the database once PostgreSQL is stopped too', async () => {
-    await postgres.container.stop();
+  it('answers 503 and names the database while PostgreSQL does not answer, then recovers', async () => {
+    await docker('pause', postgres.container.getId());
+    const during = await request(app.getHttpServer()).get('/api/v1/health').expect(503);
+    await docker('unpause', postgres.container.getId());
 
-    const response = await request(app.getHttpServer()).get('/api/v1/health').expect(503);
-
-    expect(response.body).toEqual({
-      status: 'degraded',
-      checks: { database: 'down', queue: 'down' },
+    expect(during.body).toEqual({ status: 'degraded', checks: { database: 'down', queue: 'up' } });
+    await eventually(async () => {
+      await request(app.getHttpServer()).get('/api/v1/health').expect(200);
     });
   });
 });

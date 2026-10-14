@@ -70,6 +70,19 @@ services:
     mem_limit: 128m
     restart: unless-stopped
 
+  # Applique les migrations de la base, une fois, avant le démarrage de l'API.
+  migrate:
+    build:
+      <<: *build
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://rampe:${POSTGRES_PASSWORD:-rampe-local-only}@postgres:5432/rampe
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [data]
+    restart: 'no'
+
   api:
     <<: *hardening
     build:
@@ -80,10 +93,16 @@ services:
       PORT: '3000'
       DATABASE_URL: postgresql://rampe:${POSTGRES_PASSWORD:-rampe-local-only}@postgres:5432/rampe
       VALKEY_URL: redis://:${VALKEY_PASSWORD:-rampe-local-only}@valkey:6379
+      SMTP_URL: smtp://mailpit:1025
+      PUBLIC_URL: http://127.0.0.1:8080
+      # L'application locale est servie en HTTP : un cookie Secure n'y serait pas renvoyé.
+      COOKIE_SECURE: 'false'
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       valkey:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
     healthcheck:
       test:
@@ -204,6 +223,31 @@ services:
     networks: [front]
     mem_limit: 128m
 
+  # Prépare la démonstration : compte, organisation et site de test, vérifié et scanné
+  # par la vraie API. Développement seulement ; ne fait rien si le compte existe.
+  seed:
+    build:
+      <<: *build
+      target: api
+    command: ['node', 'dist/seed-demo.js']
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://rampe:${POSTGRES_PASSWORD:-rampe-local-only}@postgres:5432/rampe
+      API_URL: http://api:3000
+      DEMO_EMAIL: demo@rampe.local
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-demo-local-only}
+      DEMO_SITE_URL: http://fixture-site/
+      DEMO_VERIFICATION_TOKEN: ${DEMO_VERIFICATION_TOKEN:-demo-verification-token-local-only}
+    depends_on:
+      api:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      fixture-site:
+        condition: service_healthy
+    networks: [front, data]
+    restart: 'no'
+
   # Site aux erreurs d'accessibilité volontaires, cible des scans de démonstration et des tests.
   fixture-site:
     <<: *hardening
@@ -213,6 +257,7 @@ services:
     environment:
       # Le proxy de sortie n'autorise que les ports 80 et 443.
       PORT: '80'
+      DEMO_VERIFICATION_TOKEN: ${DEMO_VERIFICATION_TOKEN:-demo-verification-token-local-only}
     healthcheck:
       test:
         - CMD

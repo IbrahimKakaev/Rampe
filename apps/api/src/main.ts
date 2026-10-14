@@ -12,7 +12,7 @@ import { loadConfig } from './config/app-config.js';
 async function bootstrap(): Promise<void> {
   const config = loadConfig(process.env);
   const app = await NestFactory.create<NestExpressApplication>(AppModule.register(config));
-  setupApp(app);
+  setupApp(app, { secureCookies: config.cookieSecure });
   await app.listen(config.port, '0.0.0.0');
   new Logger('Bootstrap').log(`API listening on port ${String(config.port)}`);
 }

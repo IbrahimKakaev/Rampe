@@ -6,6 +6,8 @@ import { loadConfig } from './app-config.js';
 const valid = {
   DATABASE_URL: 'postgresql://rampe:s3cret@db.internal:5432/rampe',
   VALKEY_URL: 'redis://queue.internal:6379',
+  SMTP_URL: 'smtp://mail.internal:587',
+  PUBLIC_URL: 'https://rampe.example/',
 };
 
 describe('loadConfig', () => {
@@ -15,6 +17,10 @@ describe('loadConfig', () => {
       port: 3000,
       databaseUrl: valid.DATABASE_URL,
       valkeyUrl: valid.VALKEY_URL,
+      smtpUrl: valid.SMTP_URL,
+      mailFrom: 'Rampe <ne-pas-repondre@rampe.local>',
+      publicUrl: 'https://rampe.example',
+      cookieSecure: true,
     });
   });
 
@@ -25,7 +31,9 @@ describe('loadConfig', () => {
       { ...valid, DATABASE_URL: 'mysql://h/db' },
       'DATABASE_URL',
     ],
-    ['a missing queue URL', { DATABASE_URL: valid.DATABASE_URL }, 'VALKEY_URL'],
+    ['a missing queue URL', { ...valid, VALKEY_URL: undefined }, 'VALKEY_URL'],
+    ['a mail server that is not SMTP', { ...valid, SMTP_URL: 'http://mail' }, 'SMTP_URL'],
+    ['a missing public address', { ...valid, PUBLIC_URL: undefined }, 'PUBLIC_URL'],
   ])('rejects %s and names the variable', (_label, env, variable) => {
     expect(() => loadConfig(env)).toThrow(ConfigError);
     expect(() => loadConfig(env)).toThrow(variable);
@@ -44,6 +52,13 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...valid, DATABASE_URL: database, VALKEY_URL: queue }).nodeEnv).toBe(
       'development',
     );
+  });
+
+  it('refuses cookies without the Secure flag in production', () => {
+    expect(() => loadConfig({ ...valid, NODE_ENV: 'production', COOKIE_SECURE: 'false' })).toThrow(
+      'COOKIE_SECURE',
+    );
+    expect(loadConfig({ ...valid, COOKIE_SECURE: 'false' }).cookieSecure).toBe(false);
   });
 
   it('accepts real credentials in production', () => {

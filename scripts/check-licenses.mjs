@@ -37,16 +37,23 @@ const EXCEPTIONS = [
     packages: /^lightningcss(-[a-z0-9-]+)?$/,
     reason: 'CSS tool of the Angular build, used unmodified and not shipped',
   },
+  {
+    // EPL-2.0 is, like MPL-2.0, a copyleft limited to the package's own files.
+    license: 'EPL-2.0',
+    packages: /^elkjs$/,
+    reason: 'graph layout of Prisma Studio, part of the Prisma CLI; Rampe never runs it, unmodified',
+  },
 ];
 
 /** Whether an SPDX expression such as "MIT" or "(MIT OR CC0-1.0)" is acceptable for a package. */
 export function isAccepted(expression, packageName) {
   const text = expression.trim().replace(/^\((.*)\)$/, '$1');
-  if (text.includes(' OR ')) {
-    return text.split(' OR ').some((part) => isAccepted(part, packageName));
+  // SPDX writes OR and AND in capitals; some packages write them in lower case.
+  if (/ or /i.test(text)) {
+    return text.split(/ or /i).some((part) => isAccepted(part, packageName));
   }
-  if (text.includes(' AND ')) {
-    return text.split(' AND ').every((part) => isAccepted(part, packageName));
+  if (/ and /i.test(text)) {
+    return text.split(/ and /i).every((part) => isAccepted(part, packageName));
   }
   return (
     ALLOWED.has(text) ||

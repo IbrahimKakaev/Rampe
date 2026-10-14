@@ -40,6 +40,8 @@ export interface FixtureServerOptions {
   readonly slowPageDelayMs?: number;
   readonly log?: (entry: RequestLogEntry) => void;
   readonly now?: () => Date;
+  /** Served at /.well-known/rampe-verification.txt, so that the demo site can be verified. */
+  readonly verificationToken?: string | undefined;
 }
 
 /** Maps a request path to a file under `root`, or `null` when it would escape it. */
@@ -134,6 +136,13 @@ export function createFixtureServer(options: FixtureServerOptions): Server {
       if (request.method !== 'GET' && !head) {
         response.setHeader('allow', 'GET, HEAD');
         send(response, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', false);
+        return;
+      }
+      if (
+        pathname === '/.well-known/rampe-verification.txt' &&
+        options.verificationToken !== undefined
+      ) {
+        send(response, 200, 'text/plain; charset=utf-8', `${options.verificationToken}\n`, head);
         return;
       }
       if (pathname === '/__health') {

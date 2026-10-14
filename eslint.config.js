@@ -14,6 +14,7 @@ export default defineConfig(
       '**/.angular/',
       'e2e/test-results/',
       'e2e/playwright-report/',
+      'apps/api/src/generated/',
     ],
   },
   {

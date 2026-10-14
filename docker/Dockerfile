@@ -36,6 +36,16 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm --filter @rampe/worker deploy --prod /out/worker && \
     pnpm --filter @rampe/fixture-site deploy --prod /out/fixture-site
 
+# ------------------------------------------------------------------ migrate
+# Applies the database migrations, once, before the API starts. The Prisma
+# migration engine is fetched now: at run time the database network has no
+# way out.
+FROM build AS migrate
+WORKDIR /repo/apps/api
+RUN node node_modules/prisma/build/index.js version >/dev/null
+USER node
+CMD ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
+
 # -------------------------------------------------------------- Node services
 FROM ${NODE_IMAGE} AS node-runtime
 ENV NODE_ENV=production

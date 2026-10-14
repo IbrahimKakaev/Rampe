@@ -55,6 +55,15 @@ export class QueueConnection implements Probe, OnApplicationBootstrap, OnApplica
     await this.client.ping();
   }
 
+  /** Runs a Lua script atomically on Valkey. */
+  eval(
+    script: string,
+    keys: readonly string[],
+    args: readonly (string | number)[],
+  ): Promise<unknown> {
+    return this.client.eval(script, keys.length, ...keys, ...args);
+  }
+
   onApplicationShutdown(): void {
     this.client.disconnect();
   }

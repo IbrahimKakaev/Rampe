@@ -75,6 +75,7 @@ describe('createFixtureServer', () => {
       publicDir,
       slowPageDelayMs: 300,
       log: (entry) => requests.push(entry),
+      verificationToken: 'jeton-de-demonstration',
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
@@ -179,6 +180,13 @@ describe('createFixtureServer', () => {
     expect(await (await fetch(`${origin}/variantes/image.html?etat=2`)).text()).toContain('Deux');
     expect((await fetch(`${origin}/variantes/image.html?etat=9`)).status).toBe(404);
     expect((await fetch(`${origin}/variantes/image.html?etat=../../secret`)).status).toBe(404);
+  });
+
+  it('serves the ownership proof of the demo site', async () => {
+    const response = await fetch(`${origin}/.well-known/rampe-verification.txt`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('jeton-de-demonstration\n');
   });
 
   it('answers its health check on a path no page links to', async () => {

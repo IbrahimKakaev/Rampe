@@ -4,11 +4,14 @@ packages:
   - e2e
 allowBuilds:
   '@parcel/watcher': false
+  '@prisma/engines': false
   '@scarf/scarf': false
+  argon2: false
   cpu-features: false
   esbuild: false
   lmdb: false
   msgpackr-extract: false
+  prisma: false
   protobufjs: false
   ssh2: false
   unrs-resolver: false
@@ -16,3 +19,10 @@ minimumReleaseAgeExclude:
   - bullmq@6.3.14
   - testcontainers@12.2.1
   - jest-preset-angular@17.0.3
+  - nodemailer@10.1.1
+  - mysql2@3.24.6
+# Versions corrigées de dépendances de la CLI Prisma (avis GHSA-ggr8-5vv4-36mx et
+# GHSA-3f6p-5ww8-9rcr). À retirer quand Prisma les embarquera.
+overrides:
+  deepmerge-ts: 8.0.2
+  mysql2: 3.24.6

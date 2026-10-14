@@ -7,9 +7,14 @@ import {
 } from '@nestjs/swagger';
 import { type HealthResponse, healthResponseSchema } from '@rampe/shared';
 
+import { RateLimit } from '../security/rate-limit.js';
+import { Public } from '../security/request-context.js';
 import { HealthService } from './health.service.js';
 
 @ApiTags('Technique')
+@Public()
+// The health check must answer precisely when Valkey, which holds the counters, is down.
+@RateLimit('none')
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}

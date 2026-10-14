@@ -1,0 +1,256 @@
+// Data model of Rampe. Every table that belongs to an organisation carries
+// organization_id, so that every query can, and must, filter on it.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  runtime             = "nodejs"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  /// Stored lower-case.
+  email           String    @unique
+  name            String
+  passwordHash    String    @map("password_hash")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  sessions    Session[]
+  tokens      AuthToken[]
+  memberships Membership[]
+
+  @@map("users")
+}
+
+/// A signed-in browser. The cookie holds a random token; only its hash is stored.
+model Session {
+  tokenHash String   @id @map("token_hash")
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/// Single-use tokens sent by e-mail. Only their hash is stored.
+model AuthToken {
+  tokenHash String        @id @map("token_hash")
+  userId    String        @map("user_id") @db.Uuid
+  type      AuthTokenType
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+model Organization {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  name            String
+  /// Scans older than this are deleted.
+  retentionMonths Int      @default(12) @map("retention_months")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  memberships Membership[]
+  invitations Invitation[]
+  sites       Site[]
+  scans       Scan[]
+  pages       ScanPage[]
+  findings    Finding[]
+
+  @@map("organizations")
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+model Membership {
+  userId         String   @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  role           Role
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+model Invitation {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  /// Stored lower-case.
+  email          String
+  role           Role
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at")
+  acceptedAt     DateTime? @map("accepted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("invitations")
+}
+
+enum VerificationMethod {
+  DNS
+  FILE
+}
+
+enum ScanSchedule {
+  NONE
+  DAILY
+  WEEKLY
+}
+
+model Site {
+  id                 String              @id @default(uuid(7)) @db.Uuid
+  organizationId     String              @map("organization_id") @db.Uuid
+  /// Origin of the site, such as https://www.example.fr
+  origin             String
+  host               String
+  /// Public token the owner publishes to prove ownership.
+  verificationToken  String              @map("verification_token")
+  verificationMethod VerificationMethod? @map("verification_method")
+  verifiedAt         DateTime?           @map("verified_at")
+  maxPages           Int                 @default(25) @map("max_pages")
+  schedule           ScanSchedule        @default(NONE)
+  createdAt          DateTime            @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scans        Scan[]
+
+  @@unique([organizationId, origin])
+  @@index([organizationId])
+  @@map("sites")
+}
+
+enum ScanTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+model Scan {
+  id                  String      @id @default(uuid(7)) @db.Uuid
+  organizationId      String      @map("organization_id") @db.Uuid
+  siteId              String      @map("site_id") @db.Uuid
+  trigger             ScanTrigger
+  status              ScanStatus  @default(QUEUED)
+  /// Why a scan failed or stopped early, as the scan engine reports it.
+  reason              String?
+  createdAt           DateTime    @default(now()) @map("created_at")
+  startedAt           DateTime?   @map("started_at")
+  finishedAt          DateTime?   @map("finished_at")
+  axeVersion          String?     @map("axe_version")
+  referentialVersion  String      @map("referential_version")
+  pageCount           Int?        @map("page_count")
+  checksPassed        Int?        @map("checks_passed")
+  checksFailed        Int?        @map("checks_failed")
+  checksIncomplete    Int?        @map("checks_incomplete")
+  /// Automated pre-audit score, between 0 and 1. Never an RGAA conformity rate.
+  score               Float?
+  findingsAdded       Int?        @map("findings_added")
+  findingsFixed       Int?        @map("findings_fixed")
+  skippedByRobots     Int?        @map("skipped_by_robots")
+  skippedBeyondLimits Int?        @map("skipped_beyond_limits")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  pages        ScanPage[]
+  findings     Finding[]
+
+  @@index([organizationId])
+  @@index([siteId, createdAt])
+  @@map("scans")
+}
+
+enum PageStatus {
+  ANALYZED
+  FAILED
+}
+
+model ScanPage {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  organizationId  String     @map("organization_id") @db.Uuid
+  scanId          String     @map("scan_id") @db.Uuid
+  /// Order in which the scan visited the page.
+  position        Int
+  url             String
+  path            String
+  depth           Int
+  status          PageStatus
+  error           String?
+  httpStatus      Int?       @map("http_status")
+  title           String?
+  passedRules     String[]   @map("passed_rules")
+  incompleteRules String[]   @map("incomplete_rules")
+  truncated       Boolean    @default(false)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scan         Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  findings     Finding[]
+
+  @@unique([scanId, position])
+  @@index([organizationId])
+  @@map("scan_pages")
+}
+
+model Finding {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  scanId         String   @map("scan_id") @db.Uuid
+  pageId         String   @map("page_id") @db.Uuid
+  ruleId         String   @map("rule_id")
+  impact         String?
+  selector       String
+  /// HTML extract, 500 characters at most.
+  html           String
+  wcag           String[]
+  /// RGAA criteria the rule is linked to with certainty.
+  rgaaCriteria   String[] @map("rgaa_criteria")
+  /// Criteria linked with doubt: shown as "to confirm", never as a fact.
+  rgaaUncertain  String[] @map("rgaa_uncertain")
+  fingerprint    String
+  /// True when the previous scan of the site did not have this defect.
+  isNew          Boolean  @default(false) @map("is_new")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scan         Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  page         ScanPage     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([scanId, ruleId])
+  @@index([pageId])
+  @@map("findings")
+}
