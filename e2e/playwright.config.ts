@@ -8,6 +8,9 @@ export default defineConfig({
   testDir: './tests',
   // A retry would hide a flaky test instead of fixing it.
   retries: 0,
+  // The scan tests share the test site, its log and the politeness gate: one at a time.
+  workers: 1,
+  fullyParallel: false,
   forbidOnly: process.env['CI'] !== undefined,
   reporter: process.env['CI'] === undefined ? 'list' : [['list'], ['html', { open: 'never' }]],
   use: {

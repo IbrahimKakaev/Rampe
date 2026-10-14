@@ -1,0 +1,41 @@
+{
+  "description": "Erreurs d'accessibilité plantées volontairement dans le site de test. Chaque page citée en contient exactement une ; les autres pages HTML du site n'en contiennent aucune. Le critère RGAA attendu est provisoire : il sera confirmé au jalon J2.",
+  "defects": [
+    {
+      "page": "/erreurs/image-sans-alternative.html",
+      "rule": "image-alt",
+      "description": "Image porteuse d'information sans alternative textuelle",
+      "expectedRgaaCriterion": "1.1"
+    },
+    {
+      "page": "/erreurs/champ-sans-etiquette.html",
+      "rule": "label",
+      "description": "Champ de formulaire sans étiquette",
+      "expectedRgaaCriterion": "11.1"
+    },
+    {
+      "page": "/erreurs/contraste-insuffisant.html",
+      "rule": "color-contrast",
+      "description": "Texte au contraste insuffisant",
+      "expectedRgaaCriterion": "3.2"
+    },
+    {
+      "page": "/erreurs/lien-vide.html",
+      "rule": "link-name",
+      "description": "Lien sans intitulé",
+      "expectedRgaaCriterion": "6.2"
+    },
+    {
+      "page": "/erreurs/langue-absente.html",
+      "rule": "html-has-lang",
+      "description": "Langue de la page absente",
+      "expectedRgaaCriterion": "8.3"
+    },
+    {
+      "page": "/erreurs/titre-absent.html",
+      "rule": "document-title",
+      "description": "Titre de la page absent",
+      "expectedRgaaCriterion": "8.5"
+    }
+  ]
+}

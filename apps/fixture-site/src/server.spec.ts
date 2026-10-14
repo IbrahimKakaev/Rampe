@@ -5,7 +5,12 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { createFixtureServer, resolvePublicFile } from './server.js';
+import {
+  buildSitemap,
+  createFixtureServer,
+  type RequestLogEntry,
+  resolvePublicFile,
+} from './server.js';
 
 describe('resolvePublicFile', () => {
   const root = '/srv/site';
@@ -36,10 +41,24 @@ describe('resolvePublicFile', () => {
   });
 });
 
+describe('buildSitemap', () => {
+  it('lists the sitemap pages on the host the client asked for', () => {
+    const sitemap = buildSitemap('fixture-site');
+
+    expect(sitemap).toContain('<loc>http://fixture-site/</loc>');
+    expect(sitemap).toContain('<loc>http://fixture-site/plan-du-site-seulement.html</loc>');
+  });
+
+  it.each([undefined, 'evil"><x>', 'a b'])('falls back to localhost for the host %j', (host) => {
+    expect(buildSitemap(host)).toContain('<loc>http://localhost/</loc>');
+  });
+});
+
 describe('createFixtureServer', () => {
   let directory: string;
   let server: Server;
   let origin: string;
+  const requests: RequestLogEntry[] = [];
 
   beforeAll(async () => {
     directory = await mkdtemp(join(tmpdir(), 'rampe-fixture-'));
@@ -50,8 +69,13 @@ describe('createFixtureServer', () => {
     await writeFile(join(publicDir, 'robots.txt'), 'User-agent: *\nAllow: /\n');
     await writeFile(join(publicDir, 'data.bin'), 'binary');
     await writeFile(join(directory, 'secret.txt'), 'top secret');
+    await writeFile(join(publicDir, 'lent.html'), '<!doctype html><title>Lente</title>');
 
-    server = createFixtureServer(publicDir);
+    server = createFixtureServer({
+      publicDir,
+      slowPageDelayMs: 300,
+      log: (entry) => requests.push(entry),
+    });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;
   });
@@ -94,6 +118,59 @@ describe('createFixtureServer', () => {
 
     expect(response.status).toBe(404);
     expect(await response.text()).not.toContain('top secret');
+  });
+
+  it('logs each request with its path, user agent, status and duration', async () => {
+    requests.length = 0;
+    await fetch(`${origin}/robots.txt?x=1`, { headers: { 'user-agent': 'RampeBot/1.0' } });
+
+    expect(requests).toEqual([
+      expect.objectContaining({
+        event: 'request',
+        method: 'GET',
+        path: '/robots.txt?x=1',
+        userAgent: 'RampeBot/1.0',
+        status: 200,
+        durationMs: expect.any(Number),
+      }),
+    ]);
+  });
+
+  it('logs a request the client abandoned, with status 0', async () => {
+    requests.length = 0;
+    await fetch(`${origin}/lent.html`, { signal: AbortSignal.timeout(50) }).catch(() => undefined);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(requests).toEqual([expect.objectContaining({ path: '/lent.html', status: 0 })]);
+  });
+
+  it('makes the slow page wait before answering', async () => {
+    const started = Date.now();
+    const response = await fetch(`${origin}/lent.html`);
+
+    expect(response.status).toBe(200);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(290);
+  });
+
+  it.each([
+    ['/redirection-interne', 'http://169.254.169.254/latest/meta-data/'],
+    ['/redirection-hors-site', 'http://www.example.com/'],
+  ])('redirects %s to %s', async (path, location) => {
+    const response = await fetch(`${origin}${path}`, { redirect: 'manual' });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toBe(location);
+  });
+
+  it('generates sitemap.xml for the requested host', async () => {
+    const response = await fetch(`${origin}/sitemap.xml`);
+
+    expect(response.headers.get('content-type')).toBe('application/xml; charset=utf-8');
+    expect(await response.text()).toContain('<loc>http://127.0.0.1:');
+  });
+
+  it('answers its health check on a path no page links to', async () => {
+    expect(await (await fetch(`${origin}/__health`)).text()).toBe('ok');
   });
 
   it('refuses methods other than GET and HEAD', async () => {

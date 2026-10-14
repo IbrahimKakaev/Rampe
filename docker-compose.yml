@@ -105,8 +105,13 @@ services:
     environment:
       NODE_ENV: development
       VALKEY_URL: redis://:${VALKEY_PASSWORD:-rampe-local-only}@valkey:6379
+      BROWSER_WS_ENDPOINT: ws://browser:3000${BROWSER_WS_PATH:-/rampe-browser-local-only}
+      EGRESS_PROXY_URL: http://egress-proxy:3128
+      SCAN_BOT_INFO_URL: http://127.0.0.1:8080/robot
     depends_on:
       valkey:
+        condition: service_healthy
+      browser:
         condition: service_healthy
     healthcheck:
       test: ['CMD', 'node', 'dist/healthcheck.js']
@@ -116,6 +121,70 @@ services:
     # Le worker n'a ni accès réseau ni identifiants vers PostgreSQL.
     networks: [queue, sandbox]
     mem_limit: 512m
+
+  # Seule sortie vers Internet du moteur de scan : refuse toute adresse non publique.
+  egress-proxy:
+    <<: *hardening
+    build:
+      <<: *build
+      target: worker
+    command: ['node', 'dist/egress/main.js']
+    environment:
+      NODE_ENV: development
+      PORT: '3128'
+      # Développement seulement (D3) : le site de test tourne sur une adresse privée
+      # de Docker. Le proxy refuse de démarrer avec cette liste en production.
+      EGRESS_ALLOWED_PRIVATE_HOSTS: fixture-site
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3128/healthz').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    networks: [sandbox, egress]
+    mem_limit: 256m
+
+  # Chromium isolé : son seul réseau est le bac à sable, d'où il ne joint que le proxy.
+  browser:
+    build:
+      <<: *build
+      target: browser
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      BROWSER_WS_PATH: ${BROWSER_WS_PATH:-/rampe-browser-local-only}
+      EGRESS_PROXY_URL: http://egress-proxy:3128
+    depends_on:
+      egress-proxy:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('node:net').connect(3000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    read_only: true
+    tmpfs: [/tmp]
+    shm_size: 256m
+    cap_drop: [ALL]
+    # Uniquement dans l'ensemble limite : pwuser n'a aucune capacité effective. Le bac à
+    # sable de Chromium en a besoin dans le namespace qu'il crée pour s'y enfermer.
+    cap_add: [SYS_CHROOT]
+    security_opt:
+      - 'no-new-privileges:true'
+      # Profil de Playwright : celui de Docker interdit les namespaces du bac à sable.
+      - 'seccomp=./docker/seccomp-chromium.json'
+    mem_limit: 1536m
+    cpus: 2
+    pids_limit: 512
+    networks: [sandbox]
+    restart: unless-stopped
 
   web:
     <<: *hardening
@@ -142,13 +211,14 @@ services:
       <<: *build
       target: fixture-site
     environment:
-      PORT: '8080'
+      # Le proxy de sortie n'autorise que les ports 80 et 443.
+      PORT: '80'
     healthcheck:
       test:
         - CMD
         - node
         - -e
-        - "fetch('http://127.0.0.1:8080/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+        - "fetch('http://127.0.0.1/__health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
       interval: 5s
       timeout: 4s
       retries: 12
@@ -164,10 +234,10 @@ networks:
   # Valkey, partagé par l'API et le worker. Sans route vers l'extérieur.
   queue:
     internal: true
-  # Bac à sable du navigateur de scan (jalon J1). Sans route vers l'extérieur.
+  # Bac à sable du navigateur de scan. Sans route vers l'extérieur.
   sandbox:
     internal: true
-  # Seul réseau d'où le proxy de sortie rejoindra Internet (jalon J1).
+  # Seul réseau d'où le proxy de sortie rejoint Internet.
   egress: {}
 
 volumes:

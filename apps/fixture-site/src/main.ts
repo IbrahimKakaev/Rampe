@@ -5,7 +5,7 @@ import { createFixtureServer } from './server.js';
 const port = Number(process.env['PORT'] ?? 8080);
 const publicDir = fileURLToPath(new URL('../public', import.meta.url));
 
-const server = createFixtureServer(publicDir);
+const server = createFixtureServer({ publicDir });
 server.listen(port, '0.0.0.0', () => {
   console.info(`Fixture site listening on port ${String(port)}`);
 });
@@ -13,5 +13,6 @@ server.listen(port, '0.0.0.0', () => {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.once(signal, () => {
     server.close(() => process.exit(0));
+    server.closeAllConnections();
   });
 }

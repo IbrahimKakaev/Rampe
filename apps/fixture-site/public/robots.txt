@@ -1,0 +1,10 @@
+# Site de test de Rampe.
+# RampeBot a son propre groupe : il ignore donc le groupe générique et doit y
+# trouver à nouveau toutes les règles qui le concernent.
+
+User-agent: *
+Disallow: /prive/
+
+User-agent: RampeBot
+Disallow: /prive/
+Disallow: /interdit-a-rampebot.html

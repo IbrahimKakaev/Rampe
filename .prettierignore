@@ -7,3 +7,5 @@ test-results
 playwright-report
 # Recopié tel quel depuis la demande initiale : ne pas reformater.
 docs/CAHIER-DES-CHARGES.md
+# Copie non modifiée du profil de Playwright : voir docker/THIRD_PARTY.md.
+docker/seccomp-chromium.json

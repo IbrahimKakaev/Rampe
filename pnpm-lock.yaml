@@ -299,6 +299,12 @@ importers:
 
   apps/worker:
     dependencies:
+      '@axe-core/playwright':
+        specifier: 4.13.0
+        version: 4.13.0(playwright-core@1.64.0)
+      '@rampe/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@rampe/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -308,11 +314,31 @@ importers:
       ioredis:
         specifier: 6.0.0
         version: 6.0.0(supports-color@8.1.1)
+      ipaddr.js:
+        specifier: 2.5.0
+        version: 2.5.0
+      playwright-core:
+        specifier: 1.64.0
+        version: 1.64.0
+      robots-parser:
+        specifier: 3.0.1
+        version: 3.0.1
+      undici:
+        specifier: 8.11.2
+        version: 8.11.2
       zod:
         specifier: 4.6.7
         version: 4.6.7
+    devDependencies:
+      axe-core:
+        specifier: 4.13.0
+        version: 4.13.0
 
   e2e:
+    dependencies:
+      '@rampe/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
     devDependencies:
       '@axe-core/playwright':
         specifier: 4.13.0
@@ -3277,6 +3303,10 @@ packages:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
 
+  ipaddr.js@2.5.0:
+    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
+    engines: {node: '>= 10'}
+
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
@@ -4180,6 +4210,10 @@ packages:
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
     engines: {node: '>= 4'}
+
+  robots-parser@3.0.1:
+    resolution: {integrity: sha512-s+pyvQeIKIZ0dx5iJiQk1tPLJAWln39+MI5jtM8wnyws+G5azk+dMnMX0qfbqNetKKNgcWWOdi0sfm+FbQbgdQ==}
+    engines: {node: '>=10.0.0'}
 
   rolldown@1.2.8:
     resolution: {integrity: sha512-Z67nTmhZe7anqnM/EjI392w5i/ANUinjip7QYsOyN37oayduxt3ksdX0hf5OOamkAd53BiIHfbfSzfUmzKFQqQ==}
@@ -7776,6 +7810,8 @@ snapshots:
 
   ipaddr.js@1.9.1: {}
 
+  ipaddr.js@2.5.0: {}
+
   is-arrayish@0.2.1: {}
 
   is-extglob@2.1.1: {}
@@ -8845,6 +8881,8 @@ snapshots:
       signal-exit: 4.1.0
 
   retry@0.12.0: {}
+
+  robots-parser@3.0.1: {}
 
   rolldown@1.2.8:
     dependencies:

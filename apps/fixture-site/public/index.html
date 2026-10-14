@@ -3,16 +3,42 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Site de test de Rampe</title>
+    <title>Accueil — Site de test de Rampe</title>
   </head>
   <body>
-    <main>
+    <main id="contenu">
       <h1>Site de test de Rampe</h1>
       <p>
-        Ce site sert de cible aux scans de démonstration et aux tests automatisés de Rampe. Ses
-        pages contiendront des erreurs d'accessibilité volontaires, chacune répertoriée dans un
-        manifeste. Elles arrivent avec le moteur de scan.
+        Ce site sert de cible aux scans de démonstration et aux tests automatisés de Rampe. Chaque
+        page d'erreur contient une seule erreur d'accessibilité volontaire, répertoriée dans le
+        fichier defects.json. Les autres pages n'en contiennent aucune.
       </p>
+      <h2>Erreurs volontaires</h2>
+      <ul>
+        <li><a href="/erreurs/image-sans-alternative.html">Image sans alternative</a></li>
+        <li><a href="/erreurs/champ-sans-etiquette.html">Champ sans étiquette</a></li>
+        <li><a href="/erreurs/contraste-insuffisant.html">Contraste insuffisant</a></li>
+        <li><a href="/erreurs/lien-vide.html">Lien vide</a></li>
+        <li><a href="/erreurs/langue-absente.html">Langue absente</a></li>
+        <li><a href="/erreurs/titre-absent.html">Titre absent</a></li>
+      </ul>
+      <h2>Pages sans erreur</h2>
+      <ul>
+        <li><a href="/page-propre.html">Page sans erreur</a></li>
+        <li><a href="/profondeur/niveau-1.html">Niveau 1 d'une suite de pages imbriquées</a></li>
+      </ul>
+      <h2>Pages qui éprouvent le robot</h2>
+      <ul>
+        <li><a href="/prive/espace-client.html">Espace client, interdit par robots.txt</a></li>
+        <li><a href="/interdit-a-rampebot.html">Page interdite au seul RampeBot</a></li>
+        <li><a href="/lent.html">Page qui met plus de 30 secondes à répondre</a></li>
+        <li><a href="/redirection-interne">Redirection vers une adresse interne</a></li>
+        <li><a href="/redirection-hors-site">Redirection vers un autre site</a></li>
+        <li><a href="/document.pdf">Document PDF</a></li>
+        <li><a href="https://www.example.org/">Site externe</a></li>
+        <li><a href="mailto:contact@example.org">Adresse électronique</a></li>
+        <li><a href="#contenu">Lien vers cette même page</a></li>
+      </ul>
     </main>
   </body>
 </html>

@@ -7,6 +7,9 @@
 
 ARG NODE_IMAGE=node:26-trixie-slim@sha256:193fe51b64e77981119c98c2002c9e32a70e2f006fb4d25068ce0558998917f0
 ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:stable-alpine@sha256:56b8272e43a0525f67aed68d1e0794a712d10e3e45a563e118e9a77c817e6f86
+# Its browsers must be those of the playwright-core version in apps/worker/package.json:
+# a test checks that the two stay in step.
+ARG PLAYWRIGHT_IMAGE=mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f
 
 # ---------------------------------------------------------------- build stage
 FROM ${NODE_IMAGE} AS build
@@ -50,8 +53,18 @@ CMD ["node", "dist/main.js"]
 
 FROM node-runtime AS fixture-site
 COPY --from=build --chown=node:node /out/fixture-site ./
-EXPOSE 8080
+EXPOSE 80
 CMD ["node", "dist/main.js"]
+
+# -------------------------------------------------------------------- browser
+# Chromium, driven by the worker. Runs as the image's unprivileged pwuser.
+FROM ${PLAYWRIGHT_IMAGE} AS browser
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build --chown=pwuser:pwuser /out/worker ./
+USER pwuser
+EXPOSE 3000
+CMD ["node", "dist/browser-server/main.js"]
 
 # ------------------------------------------------------------------------ web
 FROM ${NGINX_IMAGE} AS web
