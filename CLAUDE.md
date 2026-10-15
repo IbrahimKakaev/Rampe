@@ -54,6 +54,10 @@ Prérequis : Node 26, pnpm 12, Docker avec Compose.
 ```
 apps/
   web/            Angular 22, interface en français, servie par nginx
+                    src/app/core/              session, gardes, appels à l'API, formulaires, focus, annonces
+                    src/app/ui/                score, avertissement de pré-audit, graphique, textes de correction
+                    src/app/auth|sites|scans/  les pages, une par route de WEB_ROUTES
+                    src/styles/                toute la CSS : aucun composant n'a de style propre
   api/            NestJS 12 : REST, OpenAPI, Prisma, e-mails
                     prisma/schema.prisma       modèle de données ; migrations dans prisma/migrations
                     src/security/              session, CSRF, gardes d'organisation, limitation de débit
@@ -64,7 +68,8 @@ apps/
                     dist/scan-cli.js             commande de scan (jusqu'à l'API, J3)
                     dist/egress/main.js          proxy de sortie, garde SSRF (conteneur egress-proxy)
                     dist/browser-server/main.js  Chromium isolé (conteneur browser)
-  fixture-site/   site de test aux erreurs volontaires ; defects.json les liste
+  fixture-site/   site de test aux erreurs volontaires ; defects.json les liste. Répond aussi
+                  sous le nom fixture-site-e2e, où les tests publient le jeton d'un nouveau site
 packages/
   rules/          code pur, sans I/O, couvert à 100 % :
                     src/rgaa/                  référentiel, correspondance avec axe-core, classement
@@ -111,10 +116,19 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 
 - Unitaires : `*.spec.ts` à côté du code testé.
 - Intégration : `test/*.int-spec.ts`, contre de vrais services démarrés par `test-support/containers.ts`, sur les images exactes de `docker-compose.yml`.
-- Bout en bout : `e2e/tests/`, contre l'application lancée par Compose. Toute nouvelle page y reçoit un contrôle `expectNoAccessibilityViolations`. Les tests du moteur de scan pilotent les conteneurs avec `e2e/tests/support/compose.ts` et lisent le journal du site de test pour vérifier le comportement du robot.
+- Bout en bout : `e2e/tests/`, contre l'application lancée par Compose. Toute page est visitée par `routes.spec.ts` (axe-core, politique de sécurité du contenu, mot « conforme », avertissement près des scores). Le compte de démonstration s'obtient par `demoCookies()` : la connexion est limitée à 10 essais par minute. Les tests du moteur de scan pilotent les conteneurs avec `e2e/tests/support/compose.ts` et lisent le journal du site de test pour vérifier le comportement du robot.
 - Site de test : toute erreur volontaire ajoutée est déclarée dans `apps/fixture-site/defects.json` ; les autres pages doivent rester sans violation, un test le vérifie.
 - Jest tourne en modules ES : importer `describe`, `it`, `expect` et `jest` depuis `@jest/globals`. `jest.mock` ne fonctionne pas dans ce mode ; on injecte les dépendances et on passe des doublures.
 - Un test porte le nom du comportement attendu, pas celui de la fonction.
+
+**Interface.**
+
+- Les chemins des pages sont dans `WEB_ROUTES` (`packages/shared/src/web-routes.ts`) ; on construit un lien avec `webPath('site', { org, site })`. Une page nouvelle s'y ajoute d'abord, puis au routeur et à `e2e/tests/routes.spec.ts`, qui ne compile pas sans elle.
+- Aucun `styleUrl` ni `styles` dans un composant, aucun attribut `style` dans un gabarit : la politique de sécurité du contenu les refuse. La CSS va dans `src/styles/`.
+- Un score ne s'affiche qu'avec `<rampe-score>`, et la page qui l'affiche contient `<rampe-pre-audit-notice>`.
+- Aucun texte de correction dans un composant : ils viennent de l'API (`correction`, `title`), affichés avec `<rampe-content-text>`.
+- Les lectures passent par `httpResource` avec `parse: parseWith(schéma)` ; les formulaires par `FormState` (`core/forms.ts`), avec les schémas de `@rampe/shared`.
+- Toute page commence par un `h1` présent dès le premier rendu : il reçoit le focus après la navigation.
 
 **`packages/rules`.** Aucune entrée-sortie, aucune dépendance à l'horloge ou au réseau. Tout ce qui interprète un résultat de scan (score, correspondance RGAA, empreinte, comparaison) s'y trouve.
 

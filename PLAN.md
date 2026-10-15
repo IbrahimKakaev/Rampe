@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J2 validés et fusionnés dans `main`. Jalon J3 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J3 validés et fusionnés dans `main`. Jalon J4 réalisé, en attente de validation.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -375,13 +375,21 @@ Pages d'authentification, sites, assistant de vérification, résultats d'un sca
 
 Critères d'acceptation :
 
-- [ ] Parcours complet de bout en bout : inscription, ajout d'un site, vérification, scan, consultation des résultats.
-- [ ] Le même parcours réussit au clavier seul, focus toujours visible.
-- [ ] Les défauts se groupent par critère RGAA, par gravité et par page. Le détail montre l'extrait, l'emplacement et la correction.
-- [ ] Aucun texte de correction n'est écrit dans un composant.
-- [ ] La liste des sites affiche le dernier score et la tendance. Le graphique a un tableau de données équivalent.
-- [ ] Toute vue qui affiche un score affiche « pré-audit automatique » et le nombre de critères à vérifier manuellement. Le mot « conforme » n'apparaît dans aucune vue de pré-audit.
-- [ ] axe ne trouve aucune violation « serious » ou « critical » sur toutes les routes, tirées de la configuration du routeur pour n'en oublier aucune. Contrastes AA. Vérifié en CI.
+- [x] Parcours complet de bout en bout : inscription, ajout d'un site, vérification, scan, consultation des résultats. _Joué à la souris dans `e2e/tests/dashboard.spec.ts`, avec le lien de confirmation reçu dans Mailpit et le jeton publié sur le site de test._
+- [x] Le même parcours réussit au clavier seul, focus toujours visible. _Chaque cible est atteinte par Tab ; à chaque arrêt, le contour du focus est vérifié._
+- [x] Les défauts se groupent par critère RGAA, par gravité et par page. Le détail montre l'extrait, l'emplacement et la correction.
+- [x] Aucun texte de correction n'est écrit dans un composant. _Un test lit toutes les sources de l'interface._
+- [x] La liste des sites affiche le dernier score et la tendance. Le graphique a un tableau de données équivalent.
+- [x] Toute vue qui affiche un score affiche « pré-audit automatique » et le nombre de critères à vérifier manuellement. Le mot « conforme » n'apparaît dans aucune vue de pré-audit. _Vérifié sur les sources et sur chaque page rendue._
+- [x] axe ne trouve aucune violation « serious » ou « critical » sur toutes les routes, tirées de la configuration du routeur pour n'en oublier aucune. Contrastes AA. Vérifié en CI. _Aucune violation, toutes gravités confondues, sur les 16 routes et sur chaque étape du parcours. Le routeur et le test lisent la même liste, `WEB_ROUTES`._
+
+Écarts au plan constatés pendant le jalon :
+
+- Pas d'Angular CDK : son annonceur injecte des styles que la politique de sécurité du contenu refuse. Une zone `aria-live` et deux fonctions de focus le remplacent.
+- Aucun style de composant : toute la CSS est globale, pour une politique `style-src 'self'` sans nonce. La politique de sécurité du contenu, reportée du J0, est livrée.
+- La page d'acceptation d'une invitation est livrée, puisque les e-mails du J3 y mènent. La gestion des membres et des invitations dans l'interface ne l'est pas : elle n'était pas prévue au J4.
+- Le site de test répond sous un second nom, `fixture-site-e2e`, ajouté à la liste d'hôtes privés autorisés du proxy (D3), pour qu'un nouveau compte puisse le vérifier.
+- Deux vrais défauts trouvés par les tests et corrigés : le suivi d'un scan en cours ne se rafraîchissait qu'une fois, et la flèche des boutons de divulgation entrait dans leur nom accessible.
 
 ### J5 — Rapports, suivi et alertes
 

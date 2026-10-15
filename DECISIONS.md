@@ -255,3 +255,41 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 ### Démonstration
 
 **`docker compose up` prépare la démonstration avec un script séparé, `seed-demo`, qui refuse de tourner en production.** Il crée le compte `demo@rampe.local` et le site de test, puis passe par la vraie API : connexion, vérification de propriété par le fichier (que le site de test sert avec un jeton de démonstration), lancement du scan. Rien n'est factice dans le résultat : c'est un vrai scan.
+
+## Jalon J4, 15 octobre 2026
+
+### Interface
+
+**Aucun style de composant : toute la CSS est dans les feuilles globales** (`apps/web/src/styles/`). Angular injecte les styles de composants dans des éléments `<style>` au moment de l'exécution, ce qu'une politique de sécurité du contenu stricte interdit. Sans eux, la politique peut rester `style-src 'self'`, sans nonce ni `unsafe-inline`. Un test de bout en bout vérifie qu'un style injecté est bien refusé.
+
+**Politique de sécurité du contenu stricte dans nginx :** `default-src 'none'`, puis `'self'` pour les scripts, les styles, les images, les polices et les appels à l'API ; `frame-ancestors 'none'`. Le build n'insère aucun script en ligne (décision du J0). Chaque page est visitée en CI avec cette politique, et toute violation fait échouer le test.
+
+**Pas d'Angular CDK, contrairement au plan.** Il était prévu pour la gestion du focus et les annonces. Son annonceur injecte ses propres styles, ce qui casserait la politique de sécurité. Les besoins sont minces : une zone `aria-live` unique dans la coquille (`core/announcer.ts`) et le déplacement du focus (`core/focus.ts`). Aucune fenêtre modale, donc pas de piège à focus à écrire.
+
+**Après chaque changement de page, le focus va au titre `h1`**, que le lecteur d'écran annonce. Une application monopage ne recharge rien : sans cela, rien ne signale le changement. Un simple changement de paramètre de requête, comme le regroupement des défauts, garde le focus là où il est. Chaque page a son titre d'onglet, précisé avec le nom du site ou du défaut une fois les données chargées.
+
+**Lectures avec `httpResource`, validées par les schémas partagés.** C'est l'API stable d'Angular 22 pour lire des données sous forme de signaux. Son option `parse` valide chaque réponse avec le schéma Zod de `@rampe/shared` : l'API est aussi une frontière de confiance pour le navigateur.
+
+**Formulaires sans `@angular/forms`.** Les valeurs sont lues à l'envoi (`FormData`) et validées avec les schémas que l'API applique : aucune requête que l'API refuserait n'est envoyée. Chaque champ invalide reçoit son propre message, relié par `aria-describedby`, et le premier reçoit le focus. Le bouton d'envoi n'est jamais désactivé, puisqu'un bouton désactivé perd le focus ; un second envoi est ignoré pendant que le premier est en cours.
+
+**Les chemins des pages vivent dans `@rampe/shared` (`WEB_ROUTES`).** Le routeur, les liens des e-mails de l'API et les tests de bout en bout les lisent au même endroit. Un test unitaire vérifie que le routeur déclare exactement ces chemins. Le test d'accessibilité est indexé sur `WebRoute` : une page ajoutée sans visite ne compile pas.
+
+**Les textes de correction viennent de `packages/rules`, par l'API.** Leurs passages de code, notés entre accents graves, sont rendus en `<code>` par des nœuds de texte, jamais par `innerHTML`. Un test lit toutes les sources de l'interface et échoue si l'un de ces textes y est recopié, ou si le mot « conforme » y apparaît.
+
+**Le score ne s'affiche que par le composant `rampe-score`**, qui porte l'attribut `data-score`. Le test de bout en bout en déduit, page par page, que l'avertissement de pré-audit (`rampe-pre-audit-notice`) et le nombre de critères à vérifier manuellement sont présents.
+
+**Le graphique est un SVG maison, doublé d'un tableau.** Une seule série : pas de légende, échelle toujours de 0 à 100 % pour qu'un petit écart ne paraisse pas grand, trait de 2 px, points de 10 px. Le SVG porte un résumé textuel (`role="img"`). Le tableau qui suit donne chaque valeur, ce qui remplace l'infobulle au survol, inaccessible au clavier.
+
+**Les défauts sont groupés derrière des boutons de divulgation**, chargés à la première ouverture : un grand site peut en avoir des milliers. Le regroupement choisi est dans l'adresse (`?groupe=gravite`), qu'on peut donc partager.
+
+### API
+
+**Ajouts au contrat :** le titre en français de chaque défaut dans les listes ; l'intitulé officiel de chaque critère nommé dans le détail d'un défaut ; le filtre `criterion=none` pour les défauts sans critère certain ; le nombre de critères à vérifier manuellement dans le dernier scan de chaque site.
+
+### Tests
+
+**Le site de test répond sous un second nom, `fixture-site-e2e`.** Pour Rampe, c'est un autre site : le parcours de bout en bout l'ajoute à un nouveau compte, comme le ferait un client. Il y publie le jeton affiché par l'interface par un port de contrôle qui n'écoute que dans le conteneur (`docker compose exec`). Le nom est ajouté à la liste d'hôtes privés autorisés du proxy (D3), toujours refusée en production.
+
+**Le parcours complet est joué deux fois : à la souris, puis au clavier seul.** Au clavier, chaque cible est atteinte par la touche Tab, et chaque arrêt du focus doit montrer un contour visible d'au moins 2 px. À la souris, chaque étape passe aussi par axe-core, ce qui couvre les états qu'une visite page par page n'atteint pas : formulaire envoyé, vérification échouée, scan en cours.
+
+**Les tests ouvrent une seule session du compte de démonstration**, partagée par cookie. La connexion est limitée à 10 essais par minute et par adresse IP : les tests ne doivent pas déclencher la protection qu'ils exercent.

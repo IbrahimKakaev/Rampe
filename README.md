@@ -4,7 +4,7 @@ Rampe est un outil de pré-audit d'accessibilité web pour les PME françaises. 
 
 Un test automatique ne prouve jamais la conformité au RGAA : Rampe parle de « pré-audit automatique » et indique toujours ce qui reste à vérifier à la main.
 
-**État du projet :** jalon J3. L'API gère les comptes, les organisations, la vérification de propriété des sites, et enregistre les scans ; l'interface qui s'en sert arrive au jalon J4. Voir [PLAN.md](PLAN.md).
+**État du projet :** jalon J4. Le tableau de bord permet de créer un compte, d'ajouter un site et d'en prouver la propriété, de lancer un scan et d'en lire les résultats, groupés par critère RGAA, par gravité ou par page. Les rapports PDF et le suivi planifié arrivent au jalon J5. Voir [PLAN.md](PLAN.md).
 
 ## Lancer l'application
 
@@ -21,7 +21,7 @@ docker compose up --build
 | http://127.0.0.1:8080/api/v1/docs   | Documentation OpenAPI               |
 | http://127.0.0.1:8025               | Boîte de réception locale (Mailpit) |
 
-Aucune configuration n'est nécessaire. Au premier lancement, un compte de démonstration est créé : `demo@rampe.local`, mot de passe `demo-local-only`. Son site de test est vérifié et scanné tout seul, en une minute environ. Ces identifiants sont réservés au poste de développement ; [.env.example](.env.example) explique comment les changer.
+Aucune configuration n'est nécessaire. Au premier lancement, un compte de démonstration est créé : `demo@rampe.local`, mot de passe `demo-local-only`. Son site de test est vérifié et scanné tout seul, en une minute environ : connectez-vous sur http://127.0.0.1:8080/connexion pour voir ses résultats. Ces identifiants sont réservés au poste de développement ; [.env.example](.env.example) explique comment les changer.
 
 ## Scanner un site
 
