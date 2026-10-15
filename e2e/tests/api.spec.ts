@@ -1,63 +1,19 @@
 import { readFileSync } from 'node:fs';
 
-import { type APIRequestContext, expect, request, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
+import { session, tokenFromMailpit } from './support/api.js';
 
 /**
  * Acceptance tests of milestone J3, through the web server of the application
  * started by Docker Compose, as a browser would call the API.
  */
 
-const BASE_URL = process.env['BASE_URL'] ?? 'http://127.0.0.1:8080';
-const MAILPIT = process.env['MAILPIT_URL'] ?? 'http://127.0.0.1:8025';
 const manifest = JSON.parse(
   readFileSync(new URL('../../apps/fixture-site/defects.json', import.meta.url), 'utf8'),
 ) as {
   defects: { page: string; rule: string; expectedRgaaCriterion: string }[];
 };
-
-/** A browser session on the API: cookies kept, CSRF token repeated in the header. */
-async function session(): Promise<{
-  context: APIRequestContext;
-  send: (
-    method: 'post' | 'patch' | 'delete',
-    path: string,
-    data?: object,
-  ) => ReturnType<APIRequestContext['post']>;
-}> {
-  const context = await request.newContext({ baseURL: BASE_URL });
-  await context.get('/api/v1/health');
-  const { cookies } = await context.storageState();
-  const token = cookies.find((cookie) => cookie.name === 'XSRF-TOKEN')?.value ?? '';
-  return {
-    context,
-    send: (method, path, data) =>
-      context[method](`/api/v1${path}`, { data, headers: { 'x-xsrf-token': token } }),
-  };
-}
-
-/** The link token of the last e-mail Mailpit received for an address. */
-async function tokenFromMailpit(to: string): Promise<string> {
-  const mail = await request.newContext({ baseURL: MAILPIT });
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const search = (await (
-      await mail.get(`/api/v1/search?query=${encodeURIComponent(`to:"${to}"`)}`)
-    ).json()) as {
-      messages: { ID: string }[];
-    };
-    const [latest] = search.messages;
-    if (latest !== undefined) {
-      const message = (await (await mail.get(`/api/v1/message/${latest.ID}`)).json()) as {
-        Text: string;
-      };
-      const token = /jeton=([A-Za-z0-9_%-]+)/.exec(message.Text)?.[1];
-      if (token !== undefined) {
-        return decodeURIComponent(token);
-      }
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new Error(`No e-mail for ${to} in Mailpit`);
-}
 
 test.describe('accounts, through the real application', () => {
   test('sign-up, confirmation by e-mail received in Mailpit, sign-in, sign-out', async () => {

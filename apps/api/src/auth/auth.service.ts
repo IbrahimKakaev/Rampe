@@ -5,7 +5,13 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { LoginRequest, Me, RegisterRequest } from '@rampe/shared';
+import {
+  LINK_TOKEN_PARAMETER,
+  type LoginRequest,
+  type Me,
+  type RegisterRequest,
+  webPath,
+} from '@rampe/shared';
 
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { Mailer } from '../infra/mailer.js';
@@ -41,7 +47,7 @@ export class AuthService {
   async register(input: RegisterRequest): Promise<void> {
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (existing !== null) {
-      await this.mailer.send(accountExistsEmail(input.email, this.link('/mot-de-passe-oublie')));
+      await this.mailer.send(accountExistsEmail(input.email, this.link(webPath('forgotPassword'))));
       return;
     }
     const passwordHash = await hashPassword(input.password);
@@ -66,7 +72,7 @@ export class AuthService {
       });
     });
     await this.mailer.send(
-      verificationEmail(input.email, input.name, this.link('/verifier-email', token)),
+      verificationEmail(input.email, input.name, this.link(webPath('verifyEmail'), token)),
     );
   }
 
@@ -124,9 +130,7 @@ export class AuthService {
         expiresAt: new Date(Date.now() + RESET_TTL_MS),
       },
     });
-    await this.mailer.send(
-      passwordResetEmail(email, this.link('/reinitialiser-mot-de-passe', token)),
-    );
+    await this.mailer.send(passwordResetEmail(email, this.link(webPath('resetPassword'), token)));
   }
 
   /**
@@ -168,6 +172,8 @@ export class AuthService {
   }
 
   private link(path: string, token?: string): string {
-    return `${this.config.publicUrl}${path}${token === undefined ? '' : `?jeton=${encodeURIComponent(token)}`}`;
+    const query =
+      token === undefined ? '' : `?${LINK_TOKEN_PARAMETER}=${encodeURIComponent(token)}`;
+    return `${this.config.publicUrl}${path}${query}`;
   }
 }

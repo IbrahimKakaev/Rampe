@@ -123,7 +123,11 @@ export class ScansService {
       ...(filters.ruleId === undefined ? {} : { ruleId: filters.ruleId }),
       ...(filters.impact === undefined ? {} : { impact: filters.impact }),
       ...(filters.pageId === undefined ? {} : { pageId: filters.pageId }),
-      ...(filters.criterion === undefined ? {} : { rgaaCriteria: { has: filters.criterion } }),
+      ...(filters.criterion === undefined
+        ? {}
+        : filters.criterion === 'none'
+          ? { rgaaCriteria: { isEmpty: true } }
+          : { rgaaCriteria: { has: filters.criterion } }),
     };
     const [total, items] = await Promise.all([
       this.prisma.finding.count({ where }),
@@ -146,11 +150,19 @@ export class ScansService {
     if (finding === null) {
       throw new NotFoundException('Défaut introuvable');
     }
+    const summary = toFinding(finding, finding.page.path);
+    const named = [...summary.rgaa.criteria, ...summary.rgaa.uncertain, ...summary.rgaa.candidates];
     return {
-      ...toFinding(finding, finding.page.path),
+      ...summary,
       pageUrl: finding.page.url,
       fingerprint: finding.fingerprint,
       correction: CORRECTIONS_FR[finding.ruleId] ?? null,
+      criterionTitles: Object.fromEntries(
+        named.flatMap((id) => {
+          const criterion = criterionById(id);
+          return criterion === undefined ? [] : [[id, criterion.title]];
+        }),
+      ),
     };
   }
 
@@ -302,6 +314,7 @@ function toFinding(finding: StoredFinding, pagePath: string): Finding {
     pageId: finding.pageId,
     pagePath,
     ruleId: finding.ruleId,
+    title: CORRECTIONS_FR[finding.ruleId]?.title ?? null,
     impact: finding.impact as Impact | null,
     selector: finding.selector,
     html: finding.html,

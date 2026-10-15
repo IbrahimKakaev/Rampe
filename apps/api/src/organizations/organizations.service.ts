@@ -6,7 +6,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Invitation, Member, Organization, Role } from '@rampe/shared';
+import {
+  type Invitation,
+  LINK_TOKEN_PARAMETER,
+  type Member,
+  type Organization,
+  type Role,
+  webPath,
+} from '@rampe/shared';
 
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { Mailer } from '../infra/mailer.js';
@@ -157,7 +164,7 @@ export class OrganizationsService {
         email,
         organization.name,
         inviter.name,
-        `${this.config.publicUrl}/invitations?jeton=${encodeURIComponent(token)}`,
+        `${this.config.publicUrl}${webPath('acceptInvitation')}?${LINK_TOKEN_PARAMETER}=${encodeURIComponent(token)}`,
       ),
     );
     return toInvitation(invitation);

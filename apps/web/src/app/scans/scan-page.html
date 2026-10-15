@@ -1,0 +1,167 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li>
+      <a [routerLink]="paths().site">{{ site.hasValue() ? site.value().host : 'Site' }}</a>
+    </li>
+    <li aria-current="page">Résultats du scan</li>
+  </ol>
+</nav>
+
+<h1>Résultats du scan</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (scanResource.hasValue() && pages.hasValue()) { @let scan = scanResource.value(); @let
+visited = pages.value();
+
+<dl class="dl-inline">
+  <dt>Site</dt>
+  <dd>{{ site.hasValue() ? site.value().origin + '/' : '…' }}</dd>
+  <dt>Lancé le</dt>
+  <dd><time [attr.datetime]="scan.createdAt">{{ dateTime(scan.createdAt) }}</time></dd>
+  <dt>État</dt>
+  <dd>{{ statusLabel[scan.status] }}</dd>
+  <dt>Référentiel</dt>
+  <dd>
+    RGAA {{ scan.referentialVersion }}@if (scan.axeVersion) {, axe-core {{ scan.axeVersion }}}
+  </dd>
+</dl>
+
+<div role="status">
+  @if (active()) {
+  <p>
+    <strong>Scan {{ scan.status === 'QUEUED' ? 'en attente' : 'en cours' }}</strong> : {{
+    visited.length }} page{{ visited.length > 1 ? 's' : '' }} analysée{{ visited.length > 1 ? 's' :
+    '' }} pour l’instant. Cette page se met à jour toute seule.
+  </p>
+  }
+</div>
+
+@if (scan.status === 'FAILED') {
+<div class="alert" role="alert">
+  <p><strong>Le scan a échoué.</strong> {{ reason(scan.reason) }}</p>
+</div>
+} @else if (scan.status === 'PARTIAL') {
+<p><strong>Scan terminé en partie.</strong> {{ reason(scan.reason) }}</p>
+} @if (finished() && scan.score !== null) {
+<h2>Synthèse</h2>
+<rampe-pre-audit-notice [criteriaToCheckManually]="scan.criteriaToCheckManually" />
+<dl class="figures">
+  <div>
+    <dt>Score de pré-audit automatique</dt>
+    <dd><rampe-score [value]="scan.score" [large]="true" /></dd>
+  </div>
+  @if (scan.checks; as checks) {
+  <div>
+    <dt>Vérifications réussies</dt>
+    <dd>{{ checks.passed }}</dd>
+  </div>
+  <div>
+    <dt>Vérifications échouées</dt>
+    <dd>{{ checks.failed }}</dd>
+  </div>
+  <div>
+    <dt>Résultats à examiner à la main</dt>
+    <dd>{{ checks.incomplete }}</dd>
+  </div>
+  }
+  <div>
+    <dt>Pages analysées</dt>
+    <dd>{{ scan.pageCount ?? visited.length }}</dd>
+  </div>
+  @if (scan.findingsAdded !== null && scan.findingsFixed !== null) {
+  <div>
+    <dt>Depuis le scan précédent</dt>
+    <dd>{{ scan.findingsAdded }} nouveaux, {{ scan.findingsFixed }} corrigés</dd>
+  </div>
+  }
+</dl>
+} @if (finished()) {
+<h2>Défauts détectés</h2>
+@if (summary.hasValue()) { @if (findingCount() === 0) {
+<p>
+  Le robot n’a détecté aucun défaut. Cela ne prouve pas l’accessibilité du site : les critères qu’il
+  ne peut pas tester restent à vérifier à la main.
+</p>
+} @else {
+<p>
+  {{ findingCount() }} défaut{{ findingCount() > 1 ? 's' : '' }} détecté{{ findingCount() > 1 ? 's'
+  : '' }}. Un défaut rattaché à plusieurs critères figure dans chacun d’eux.
+</p>
+<fieldset class="field">
+  <legend>Grouper les défauts par</legend>
+  @for (option of groupings; track option.value) {
+  <div class="choice">
+    <input
+      [id]="'groupe-' + option.value"
+      type="radio"
+      name="groupe"
+      [value]="option.value"
+      [checked]="grouping() === option.value"
+      (change)="chooseGrouping(option.value)"
+    />
+    <label [for]="'groupe-' + option.value">{{ option.label }}</label>
+  </div>
+  }
+</fieldset>
+<ul class="groups">
+  @for (group of groups(); track grouping() + group.key) {
+  <li>
+    <rampe-finding-group
+      [org]="org()"
+      [scan]="scan.id"
+      [grouping]="grouping()"
+      [groupKey]="group.key"
+      [label]="group.label"
+      [count]="group.count"
+    />
+  </li>
+  }
+</ul>
+} } @else if (summary.error()) {
+<div class="alert" role="alert">
+  <p>Les défauts n’ont pas pu être chargés. Rechargez la page.</p>
+</div>
+} @else {
+<p role="status">Chargement des défauts…</p>
+} }
+
+<h2>Pages visitées</h2>
+@if (visited.length === 0) {
+<p>Aucune page pour l’instant.</p>
+} @else {
+<table>
+  <caption>
+    Les pages visitées par le robot, dans l’ordre de visite
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Page</th>
+      <th scope="col">Résultat</th>
+      <th scope="col" class="number">Défauts</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (page of visited; track page.id) {
+    <tr>
+      <th scope="row">
+        <code>{{ page.path }}</code>
+        @if (page.title) {
+        <br /><span class="muted">{{ page.title }}</span>
+        }
+      </th>
+      <td>
+        @if (page.status === 'ANALYZED') { Analysée @if (page.truncated) {
+        <br />Trop de défauts : seuls les premiers sont conservés. } } @else { Non analysée : {{
+        page.error ? pageErrorLabel[page.error] : 'erreur' }}@if (page.httpStatus) { (code HTTP {{
+        page.httpStatus }})} }
+      </td>
+      <td class="number">{{ page.findingCount }}</td>
+    </tr>
+    }
+  </tbody>
+</table>
+} } @else {
+<p role="status">Chargement…</p>
+}

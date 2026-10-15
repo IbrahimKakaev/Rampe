@@ -320,6 +320,9 @@ importers:
       tslib:
         specifier: 2.8.1
         version: 2.8.1
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@angular/build':
         specifier: 22.2.2
@@ -330,6 +333,12 @@ importers:
       '@angular/compiler-cli':
         specifier: 22.2.2
         version: 22.2.2(@angular/compiler@22.2.2)(typescript@6.0.3)
+      '@rampe/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
+      '@types/node':
+        specifier: 26.6.5
+        version: 26.6.5
       jest-preset-angular:
         specifier: 17.0.3
         version: 17.0.3(@angular/compiler-cli@22.2.2(@angular/compiler@22.2.2)(typescript@6.0.3))(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(@angular/platform-browser@22.2.2(@angular/common@22.2.2(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.2(@angular/compiler@22.2.2)(rxjs@7.8.2)))(@babel/core@7.29.7(supports-color@8.1.1))(@jest/transform@30.5.2(supports-color@8.1.1))(@jest/types@30.5.1)(@types/jsdom@30.0.0)(babel-jest@30.5.2(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(jest@30.5.2(@types/node@26.6.5)(supports-color@8.1.1))(jsdom@30.1.2(@noble/hashes@1.8.0))(typescript@6.0.3)

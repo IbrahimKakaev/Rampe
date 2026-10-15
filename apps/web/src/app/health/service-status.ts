@@ -12,7 +12,6 @@ const LABELS: Readonly<Record<DependencyStatus, string>> = {
 @Component({
   selector: 'rampe-service-status',
   templateUrl: './service-status.html',
-  styleUrl: './service-status.css',
 })
 export class ServiceStatus {
   private static readonly loading: HealthState = { kind: 'loading' };

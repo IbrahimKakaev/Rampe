@@ -1,4 +1,21 @@
 <h1>Rampe</h1>
-<p>Pré-audit automatique d'accessibilité de votre site web, rattaché aux critères du RGAA.</p>
+<p class="page-intro">
+  Pré-audit automatique d'accessibilité de votre site web, rattaché aux critères du RGAA. Rampe
+  parcourt vos pages, signale les défauts qu'un robot peut détecter, explique comment les corriger
+  et suit leur évolution dans le temps.
+</p>
+<p class="prose">
+  Un robot ne voit qu'une partie des problèmes : la plupart des critères du RGAA demandent un regard
+  humain. Rampe vous dit toujours combien il en reste à vérifier.
+</p>
+
+<div class="actions">
+  @if (session.signedIn()) {
+  <a class="button" [routerLink]="paths.dashboard">Voir mes sites</a>
+  } @else {
+  <a class="button" [routerLink]="paths.register">Créer un compte</a>
+  <a class="button button--secondary" [routerLink]="paths.login">Se connecter</a>
+  }
+</div>
 
 <rampe-service-status />

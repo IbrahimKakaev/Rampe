@@ -1,0 +1,83 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li>
+      <a [routerLink]="paths().site">{{ site.hasValue() ? site.value().host : 'Site' }}</a>
+    </li>
+    <li><a [routerLink]="paths().scan">Résultats du scan</a></li>
+    <li aria-current="page">{{ title() }}</li>
+  </ol>
+</nav>
+
+<h1>{{ title() }}</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (detail.hasValue()) { @let finding = detail.value();
+
+<p class="finding-meta">
+  @if (finding.impact; as impact) {
+  <span [class]="'badge badge--' + impact">Gravité : {{ impactLabel[impact] }}</span>
+  } @if (finding.isNew) {
+  <span class="badge badge--new">Nouveau depuis le scan précédent</span>
+  }
+  <span>Règle axe-core <code>{{ finding.ruleId }}</code></span>
+</p>
+
+<h2>Emplacement</h2>
+<dl class="dl-inline">
+  <dt>Page</dt>
+  <dd>{{ finding.pageUrl }}</dd>
+  <dt>Élément</dt>
+  <dd><code>{{ finding.selector }}</code></dd>
+</dl>
+
+<h2>Extrait de code</h2>
+<pre><code>{{ finding.html }}</code></pre>
+
+<h2>Critères RGAA</h2>
+@if (finding.rgaa.criteria.length > 0) {
+<ul>
+  @for (id of finding.rgaa.criteria; track id) {
+  <li><strong>Critère {{ id }}</strong> : {{ criterionTitle(finding.criterionTitles, id) }}</li>
+  }
+</ul>
+} @if (finding.rgaa.uncertain.length > 0) {
+<ul>
+  @for (id of finding.rgaa.uncertain; track id) {
+  <li>
+    <strong>Critère RGAA à confirmer : {{ id }}</strong> : {{
+    criterionTitle(finding.criterionTitles, id) }}
+  </li>
+  }
+</ul>
+} @if (finding.rgaa.criteria.length === 0 && finding.rgaa.uncertain.length === 0) {
+<p>
+  Aucun critère RGAA n’est rattaché à ce défaut avec certitude. @if (finding.rgaa.candidates.length
+  > 0) { Critères possibles, à confirmer : }
+</p>
+@if (finding.rgaa.candidates.length > 0) {
+<ul>
+  @for (id of finding.rgaa.candidates; track id) {
+  <li><strong>Critère {{ id }}</strong> : {{ criterionTitle(finding.criterionTitles, id) }}</li>
+  }
+</ul>
+} } @if (finding.wcag.length > 0) {
+<p class="muted">Critères WCAG : {{ finding.wcag.join(', ') }}</p>
+} @if (finding.correction; as correction) {
+<h2>Pourquoi c’est un problème</h2>
+<p class="prose"><rampe-content-text [text]="correction.impact" /></p>
+<h2>Comment corriger</h2>
+<p class="prose"><rampe-content-text [text]="correction.fix" /></p>
+} @else {
+<h2>Comment corriger</h2>
+<p class="prose">
+  Rampe n’a pas encore d’explication pour cette règle. Sa description se trouve dans la
+  documentation d’axe-core, sous le nom <code>{{ finding.ruleId }}</code>.
+</p>
+}
+
+<p><a [routerLink]="paths().scan">Retour aux résultats du scan</a></p>
+} @else {
+<p role="status">Chargement…</p>
+}

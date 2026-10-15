@@ -125,3 +125,16 @@ export async function inspectService(service: string): Promise<{
   ];
   return container;
 }
+
+/**
+ * Publishes a site's ownership token on the test site, as its owner would. The
+ * test site answers under several host names; each is a different site for
+ * Rampe. Its control port listens inside the container only.
+ */
+export async function publishVerificationToken(host: string, token: string): Promise<void> {
+  await nodeIn(
+    'fixture-site',
+    `fetch('http://127.0.0.1:8081/verification-tokens/${host}', { method: 'PUT', body: ${JSON.stringify(token)} })` +
+      '.then((r) => { if (r.status !== 204) process.exit(1); })',
+  );
+}

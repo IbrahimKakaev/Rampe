@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { criteriaToCheckManually } from '@rampe/rules';
 import type { Site, VerificationResult } from '@rampe/shared';
 
 import type { VerificationMethod } from '../generated/prisma/client.js';
@@ -178,6 +179,7 @@ export class SitesService {
               id: latest.id,
               status: latest.status,
               score: latest.score,
+              criteriaToCheckManually: criteriaToCheckManually(),
               finishedAt: latest.finishedAt?.toISOString() ?? null,
             },
       trend:

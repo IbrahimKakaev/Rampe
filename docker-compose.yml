@@ -153,7 +153,7 @@ services:
       PORT: '3128'
       # Développement seulement (D3) : le site de test tourne sur une adresse privée
       # de Docker. Le proxy refuse de démarrer avec cette liste en production.
-      EGRESS_ALLOWED_PRIVATE_HOSTS: fixture-site
+      EGRESS_ALLOWED_PRIVATE_HOSTS: fixture-site,fixture-site-e2e
     healthcheck:
       test:
         - CMD
@@ -267,7 +267,11 @@ services:
       interval: 5s
       timeout: 4s
       retries: 12
-    networks: [egress]
+    networks:
+      egress:
+        # Un second nom, donc un second site pour Rampe : les tests de bout en bout
+        # l'ajoutent à un nouveau compte et y publient son jeton de vérification.
+        aliases: [fixture-site-e2e]
     mem_limit: 128m
 
 networks:

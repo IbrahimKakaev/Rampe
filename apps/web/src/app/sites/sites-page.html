@@ -1,0 +1,69 @@
+<h1>Sites de {{ organizationName() }}</h1>
+
+@if (otherOrganizations().length > 0) {
+<nav aria-label="Vos autres organisations">
+  <p>
+    Vos autres organisations : @for (organization of otherOrganizations(); track organization.id;
+    let last = $last) {
+    <a [routerLink]="sitesPath(organization.id)">{{ organization.name }}</a>{{ last ? '' : ', ' }} }
+  </p>
+</nav>
+}
+
+<div class="actions">
+  <a class="button" [routerLink]="newSitePath()">Ajouter un site</a>
+</div>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (sites.hasValue()) { @let list = sites.value(); @if (list.length === 0) {
+<p class="prose">
+  Aucun site pour l’instant. Ajoutez l’adresse de votre site : vous prouverez qu’il vous appartient,
+  puis Rampe en fera le pré-audit automatique.
+</p>
+} @else { @if (criteriaToCheckManually(); as count) {
+<rampe-pre-audit-notice [criteriaToCheckManually]="count" />
+}
+<table>
+  <caption>
+    Vos sites et leur dernier pré-audit automatique
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Site</th>
+      <th scope="col">Propriété</th>
+      <th scope="col">Dernier scan</th>
+      <th scope="col">Score de pré-audit automatique</th>
+      <th scope="col">Tendance</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (site of list; track site.id) {
+    <tr>
+      <th scope="row">
+        <a [routerLink]="sitePath(site.id)">{{ site.host }}</a>
+      </th>
+      <td>
+        @if (site.verified) {
+        <span class="badge badge--ok">Vérifiée</span>
+        } @else {
+        <a [routerLink]="verificationPath(site.id)">À vérifier</a>
+        }
+      </td>
+      <td>
+        @if (site.lastScan; as scan) { {{ statusLabel[scan.status] }} @if (scan.finishedAt; as
+        finishedAt) {
+        <br /><time [attr.datetime]="finishedAt">{{ dateTime(finishedAt) }}</time>
+        } } @else { Aucun }
+      </td>
+      <td>
+        <rampe-score [value]="site.lastScan?.score ?? null" />
+      </td>
+      <td><rampe-trend [value]="site.trend" /></td>
+    </tr>
+    }
+  </tbody>
+</table>
+} } @else {
+<p role="status">Chargement des sites…</p>
+}

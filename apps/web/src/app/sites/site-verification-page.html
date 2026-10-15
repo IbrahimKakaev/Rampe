@@ -1,0 +1,121 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li>
+      <a [routerLink]="paths().site"
+        >{{ siteResource.hasValue() ? siteResource.value().host : 'Site' }}</a
+      >
+    </li>
+    <li aria-current="page">Preuve de propriété</li>
+  </ol>
+</nav>
+
+<h1>Prouver que le site vous appartient</h1>
+<rampe-wizard-steps [current]="verified() ? 3 : 2" />
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (siteResource.hasValue() && instructions.hasValue()) { @let site = siteResource.value();
+@let proof = instructions.value(); @if (verified()) {
+<section aria-labelledby="premier-scan">
+  <div class="success">
+    <h2 id="premier-scan">{{ site.host }} est vérifié</h2>
+    @if (result(); as outcome) {
+    <p>{{ outcome.detail }}</p>
+    }
+    <p>
+      Laissez la preuve en place : elle est vérifiée de nouveau avant chaque scan. Vous pouvez
+      maintenant lancer le premier scan. Il dure de quelques secondes à quelques minutes selon le
+      nombre de pages.
+    </p>
+  </div>
+  <form novalidate (submit)="startScan($event)">
+    @if (scan.failure(); as failure) {
+    <div class="alert" role="alert"><p>{{ failure }}</p></div>
+    }
+    <div class="actions">
+      <button type="submit" class="button" [attr.aria-disabled]="scan.pending() ? true : null">
+        Lancer le premier scan
+      </button>
+      <a [routerLink]="paths().site">Plus tard</a>
+    </div>
+  </form>
+</section>
+} @else {
+<p class="page-intro">
+  Rampe ne visite que les sites dont le propriétaire l’a demandé. Pour le prouver, publiez le jeton
+  ci-dessous sur <strong>{{ site.host }}</strong>, par l’une des deux méthodes, puis lancez la
+  vérification.
+</p>
+
+<form class="form" novalidate (submit)="verify($event)">
+  <fieldset class="field">
+    <legend>Méthode de vérification</legend>
+    <div class="choice">
+      <input
+        id="methode-fichier"
+        type="radio"
+        name="method"
+        value="FILE"
+        [checked]="method() === 'FILE'"
+        (change)="choose('FILE')"
+      />
+      <label for="methode-fichier">Un fichier sur le site</label>
+    </div>
+    <div class="choice">
+      <input
+        id="methode-dns"
+        type="radio"
+        name="method"
+        value="DNS"
+        [checked]="method() === 'DNS'"
+        (change)="choose('DNS')"
+      />
+      <label for="methode-dns">Un enregistrement DNS</label>
+    </div>
+  </fieldset>
+
+  @if (method() === 'FILE') {
+  <h2>Publier un fichier</h2>
+  <ol class="prose">
+    <li>
+      Créez un fichier texte accessible à cette adresse :
+      <pre><code>{{ proof.file.url }}</code></pre>
+    </li>
+    <li>
+      Mettez-y seulement ce jeton :
+      <pre><code>{{ proof.file.content }}</code></pre>
+    </li>
+  </ol>
+  } @else {
+  <h2>Ajouter un enregistrement DNS</h2>
+  <p class="prose">
+    Dans la zone DNS de votre domaine, ajoutez cet enregistrement. Sa prise en compte peut prendre
+    jusqu’à quelques heures.
+  </p>
+  <dl class="dl-inline">
+    <dt>Type</dt>
+    <dd><code>{{ proof.dns.type }}</code></dd>
+    <dt>Nom</dt>
+    <dd><code>{{ proof.dns.name }}</code></dd>
+    <dt>Valeur</dt>
+    <dd><code>{{ proof.dns.value }}</code></dd>
+  </dl>
+  } @if (check.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  } @if (result(); as outcome) { @if (!outcome.verified) {
+  <div class="alert" role="alert">
+    <p><strong>La vérification a échoué.</strong> {{ outcome.detail }}</p>
+  </div>
+  } }
+
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="check.pending() ? true : null">
+      Vérifier maintenant
+    </button>
+    <span role="status"> @if (check.pending()) { Vérification en cours… } </span>
+  </div>
+</form>
+} } @else {
+<p role="status">Chargement…</p>
+}

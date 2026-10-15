@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { createServer, type Server, type ServerResponse } from 'node:http';
 import { extname, resolve, sep } from 'node:path';
 
+import type { PublishedTokens } from './verification.js';
+
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -40,8 +42,8 @@ export interface FixtureServerOptions {
   readonly slowPageDelayMs?: number;
   readonly log?: (entry: RequestLogEntry) => void;
   readonly now?: () => Date;
-  /** Served at /.well-known/rampe-verification.txt, so that the demo site can be verified. */
-  readonly verificationToken?: string | undefined;
+  /** Served at /.well-known/rampe-verification.txt, per host, so that sites can be verified. */
+  readonly verificationTokens?: PublishedTokens | undefined;
 }
 
 /** Maps a request path to a file under `root`, or `null` when it would escape it. */
@@ -138,11 +140,12 @@ export function createFixtureServer(options: FixtureServerOptions): Server {
         send(response, 405, 'text/plain; charset=utf-8', 'Method Not Allowed', false);
         return;
       }
-      if (
-        pathname === '/.well-known/rampe-verification.txt' &&
-        options.verificationToken !== undefined
-      ) {
-        send(response, 200, 'text/plain; charset=utf-8', `${options.verificationToken}\n`, head);
+      const verificationToken =
+        pathname === '/.well-known/rampe-verification.txt'
+          ? options.verificationTokens?.forHost(request.headers.host)
+          : undefined;
+      if (verificationToken !== undefined) {
+        send(response, 200, 'text/plain; charset=utf-8', `${verificationToken}\n`, head);
         return;
       }
       if (pathname === '/__health') {

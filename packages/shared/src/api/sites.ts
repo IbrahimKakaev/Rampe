@@ -32,6 +32,8 @@ export const siteSchema = z.strictObject({
       id: idSchema,
       status: scanStateSchema,
       score: z.nullable(z.number()),
+      /** Criteria the automated pre-audit cannot decide: always shown next to the score. */
+      criteriaToCheckManually: z.number(),
       finishedAt: z.nullable(isoDateSchema),
     }),
   ),

@@ -1,7 +1,41 @@
 <a class="skip-link" href="#contenu" (click)="skipToContent($event, main)">Aller au contenu</a>
 
 <header class="site-header">
-  <a class="brand" routerLink="/">Rampe</a>
+  <div class="site-header__inner">
+    <a class="brand" [routerLink]="paths.home">Rampe</a>
+    <nav class="main-nav" aria-label="Menu principal">
+      <ul>
+        @if (session.me(); as me) {
+        <li>
+          <a [routerLink]="paths.dashboard" routerLinkActive ariaCurrentWhenActive="page"
+            >Mes sites</a
+          >
+        </li>
+        <li>
+          <a [routerLink]="paths.robot" routerLinkActive ariaCurrentWhenActive="page">Le robot</a>
+        </li>
+        <li class="signed-in-as">{{ me.user.name }}</li>
+        <li>
+          <button type="button" class="link-button" (click)="logout()">Se déconnecter</button>
+        </li>
+        } @else {
+        <li>
+          <a [routerLink]="paths.robot" routerLinkActive ariaCurrentWhenActive="page">Le robot</a>
+        </li>
+        <li>
+          <a [routerLink]="paths.login" routerLinkActive ariaCurrentWhenActive="page"
+            >Se connecter</a
+          >
+        </li>
+        <li>
+          <a [routerLink]="paths.register" routerLinkActive ariaCurrentWhenActive="page">
+            Créer un compte
+          </a>
+        </li>
+        }
+      </ul>
+    </nav>
+  </div>
 </header>
 
 <main #main id="contenu" tabindex="-1">
@@ -9,8 +43,12 @@
 </main>
 
 <footer class="site-footer">
-  <p>
-    Rampe réalise un pré-audit automatique. Un test automatique ne prouve jamais la conformité au
-    RGAA : une partie des critères se vérifie à la main.
-  </p>
+  <div class="site-footer__inner">
+    <p>
+      Rampe réalise un pré-audit automatique. Un test automatique ne prouve jamais la conformité au
+      RGAA : une partie des critères se vérifie à la main.
+    </p>
+  </div>
 </footer>
+
+<div class="visually-hidden" role="status" aria-live="polite">{{ announcer.message() }}</div>

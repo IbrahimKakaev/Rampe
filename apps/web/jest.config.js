@@ -14,6 +14,7 @@ export default {
     ...preset.moduleNameMapper,
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@rampe/shared$': `${root}packages/shared/src/index.ts`,
+    '^@rampe/rules$': `${root}packages/rules/src/index.ts`,
   },
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
   testMatch: ['<rootDir>/src/**/*.spec.ts'],

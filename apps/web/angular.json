@@ -25,7 +25,12 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"]
+            "styles": [
+              "src/styles/base.css",
+              "src/styles/layout.css",
+              "src/styles/forms.css",
+              "src/styles/components.css"
+            ]
           },
           "configurations": {
             "production": {

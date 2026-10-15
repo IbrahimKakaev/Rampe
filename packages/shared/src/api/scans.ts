@@ -57,6 +57,8 @@ export const findingSchema = z.strictObject({
   pageId: idSchema,
   pagePath: z.string(),
   ruleId: z.string(),
+  /** Short French description of the defect, from the corrections content; null if it has none. */
+  title: z.nullable(z.string()),
   impact: z.nullable(impactSchema),
   selector: z.string(),
   html: z.string(),
@@ -76,11 +78,16 @@ export const findingDetailSchema = z.extend(findingSchema, {
   pageUrl: z.string(),
   fingerprint: z.string(),
   correction: z.nullable(correctionSchema),
+  /** Official title of every RGAA criterion the defect names, certain, uncertain or candidate. */
+  criterionTitles: z.record(z.string(), z.string()),
 });
 
 export const findingsQuerySchema = z.strictObject({
   ruleId: z.optional(z.string().check(z.maxLength(100))),
-  criterion: z.optional(z.string().check(z.regex(/^\d{1,2}\.\d{1,2}$/))),
+  /** An RGAA criterion, or "none" for the defects attached to no criterion with certainty. */
+  criterion: z.optional(
+    z.union([z.string().check(z.regex(/^\d{1,2}\.\d{1,2}$/)), z.literal('none')]),
+  ),
   impact: z.optional(impactSchema),
   pageId: z.optional(idSchema),
   limit: z.optional(z.coerce.number().check(z.multipleOf(1), z.gte(1), z.lte(500))),

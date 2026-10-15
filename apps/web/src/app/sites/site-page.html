@@ -1,0 +1,136 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li aria-current="page">{{ siteResource.hasValue() ? siteResource.value().host : 'Site' }}</li>
+  </ol>
+</nav>
+
+<h1>{{ siteResource.hasValue() ? siteResource.value().host : 'Site' }}</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (siteResource.hasValue() && scans.hasValue()) { @let site = siteResource.value(); @let
+history = scans.value();
+
+<dl class="dl-inline">
+  <dt>Adresse</dt>
+  <dd>{{ site.origin }}/</dd>
+  <dt>Propriété</dt>
+  <dd>
+    @if (site.verified && site.verifiedAt) {
+    <span class="badge badge--ok">Vérifiée</span>
+    le <time [attr.datetime]="site.verifiedAt">{{ dateTime(site.verifiedAt) }}</time>
+    @if (site.verificationMethod; as method) { {{ methodLabel[method] }} } } @else {
+    <span class="badge badge--todo">Non vérifiée</span>
+    <a [routerLink]="paths().verification">Prouver que le site vous appartient</a>
+    }
+  </dd>
+</dl>
+
+<div role="status">
+  @if (activeScan(); as scan) {
+  <p>
+    <strong>Un scan est {{ scan.status === 'QUEUED' ? 'en attente' : 'en cours' }}.</strong>
+    <a [routerLink]="scanPath(scan.id)">Suivre le scan en cours</a>
+  </p>
+  }
+</div>
+
+@if (site.verified && !activeScan()) {
+<form novalidate (submit)="startScan($event)">
+  @if (start.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="start.pending() ? true : null">
+      Lancer un scan
+    </button>
+    <span class="muted">Jusqu’à {{ site.maxPages }} pages.</span>
+  </div>
+</form>
+}
+
+<h2>Évolution du score</h2>
+@if (scorePoints().length > 0) {
+<rampe-pre-audit-notice [criteriaToCheckManually]="criteriaToCheckManually()" />
+<rampe-score-chart [points]="scorePoints()" />
+} @else {
+<p>Aucun scan terminé pour l’instant : le graphique apparaîtra après le premier.</p>
+}
+
+<h2>Historique des scans</h2>
+@if (history.length === 0) {
+<p>Aucun scan pour l’instant.</p>
+} @else {
+<table>
+  <caption>
+    Les scans de {{ site.host }}, du plus récent au plus ancien
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Lancé le</th>
+      <th scope="col">État</th>
+      <th scope="col" class="number">Pages</th>
+      <th scope="col" class="number">Score de pré-audit automatique</th>
+      <th scope="col" class="number">Nouveaux défauts</th>
+      <th scope="col" class="number">Défauts corrigés</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (scan of history; track scan.id) {
+    <tr>
+      <th scope="row">
+        <a [routerLink]="scanPath(scan.id)">
+          <time [attr.datetime]="scan.createdAt">{{ dateTime(scan.createdAt) }}</time>
+        </a>
+      </th>
+      <td>{{ statusLabel[scan.status] }}</td>
+      <td class="number">{{ scan.pageCount ?? '–' }}</td>
+      <td class="number"><rampe-score [value]="scan.score" /></td>
+      <td class="number">{{ scan.findingsAdded ?? '–' }}</td>
+      <td class="number">{{ scan.findingsFixed ?? '–' }}</td>
+    </tr>
+    }
+  </tbody>
+</table>
+}
+
+<h2>Réglages</h2>
+<form class="form" novalidate (submit)="saveLimits($event)">
+  @if (limits.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="maxPages">Nombre maximal de pages par scan</label>
+    <span id="maxPages-aide" class="field-hint">
+      De 1 à {{ maxPagesLimit }}. Le robot ouvre environ une page par seconde.
+    </span>
+    <input
+      id="maxPages"
+      name="maxPages"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      [max]="maxPagesLimit"
+      [value]="site.maxPages"
+      [attr.aria-invalid]="limits.errors().maxPages ? true : null"
+      [attr.aria-describedby]="limits.errors().maxPages ? 'maxPages-aide maxPages-erreur' : 'maxPages-aide'"
+    />
+    @if (limits.errors().maxPages; as message) {
+    <p id="maxPages-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button
+      type="submit"
+      class="button button--secondary"
+      [attr.aria-disabled]="limits.pending() ? true : null"
+    >
+      Enregistrer
+    </button>
+    <span role="status"> @if (limitsSaved()) { Réglage enregistré. } </span>
+  </div>
+</form>
+} @else {
+<p role="status">Chargement…</p>
+}

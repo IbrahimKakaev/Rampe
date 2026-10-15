@@ -11,6 +11,7 @@ import {
   type RequestLogEntry,
   resolvePublicFile,
 } from './server.js';
+import { PublishedTokens } from './verification.js';
 
 describe('resolvePublicFile', () => {
   const root = '/srv/site';
@@ -75,7 +76,7 @@ describe('createFixtureServer', () => {
       publicDir,
       slowPageDelayMs: 300,
       log: (entry) => requests.push(entry),
-      verificationToken: 'jeton-de-demonstration',
+      verificationTokens: new PublishedTokens('jeton-de-demonstration'),
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     origin = `http://127.0.0.1:${String((server.address() as AddressInfo).port)}`;

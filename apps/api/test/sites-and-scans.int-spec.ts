@@ -239,8 +239,15 @@ describe('sites and scans', () => {
       ]);
 
       const findings = (await client.get(`/orgs/${org}/scans/${scanId}/findings`).expect(200))
-        .body as { total: number; items: { id: string; ruleId: string; rgaa: unknown }[] };
+        .body as {
+        total: number;
+        items: { id: string; ruleId: string; title: string | null; rgaa: unknown }[];
+      };
       expect(findings.total).toBe(2);
+      // The list names each defect in French, from the corrections content.
+      expect(findings.items.find((finding) => finding.ruleId === 'image-alt')?.title).toBe(
+        'Image sans alternative textuelle',
+      );
       expect(findings.items.find((finding) => finding.ruleId === 'image-alt')?.rgaa).toEqual({
         criteria: ['1.1'],
         uncertain: [],
@@ -257,6 +264,7 @@ describe('sites and scans', () => {
       expect(detail).toMatchObject({
         fingerprint: 'image-alt|/|img|1',
         correction: { title: 'Image sans alternative textuelle' },
+        criterionTitles: { '1.1': expect.stringContaining('alternative textuelle') },
       });
 
       const summary = (
@@ -271,6 +279,10 @@ describe('sites and scans', () => {
         await client.get(`/orgs/${org}/scans/${scanId}/findings?criterion=1.1`).expect(200)
       ).body as { total: number };
       expect(filtered.total).toBe(1);
+      const unattached = (
+        await client.get(`/orgs/${org}/scans/${scanId}/findings?criterion=none`).expect(200)
+      ).body as { items: { ruleId: string }[] };
+      expect(unattached.items.map(({ ruleId }) => ruleId)).toEqual(['aria-tooltip-name']);
       await client.get(`/orgs/${org}/scans/${scanId}/findings?impact=fatal`).expect(400);
     });
 
@@ -380,9 +392,10 @@ describe('sites and scans', () => {
       ).toEqual(['image-alt:false', 'link-name:true']);
       const site = (await client.get(`/orgs/${org}/sites/${siteId}`)).body as {
         trend: number | null;
-        lastScan: { id: string };
+        lastScan: { id: string; criteriaToCheckManually: number };
       };
       expect(site.lastScan.id).toBe(second);
+      expect(site.lastScan.criteriaToCheckManually).toBe(105);
       expect(site.trend).not.toBeNull();
     });
   });

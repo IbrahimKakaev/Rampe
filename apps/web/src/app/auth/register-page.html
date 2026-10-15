@@ -1,0 +1,97 @@
+<h1>Créer un compte</h1>
+
+@if (sentTo(); as email) {
+<div class="success">
+  <h2 id="inscription-envoyee">Vérifiez votre boîte de réception</h2>
+  <p>
+    Un lien de confirmation a été envoyé à <strong>{{ email }}</strong>. Il est valable 24 heures.
+    Ouvrez-le pour activer votre compte, puis connectez-vous.
+  </p>
+  <p><a [routerLink]="loginPath">Aller à la page de connexion</a></p>
+</div>
+} @else {
+<p class="page-intro">
+  Votre compte crée aussi votre organisation : vous pourrez y ajouter vos sites et inviter vos
+  collègues.
+</p>
+
+<form class="form" novalidate (submit)="submit($event)">
+  @if (form.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+
+  <p class="form-help">Tous les champs sont obligatoires.</p>
+
+  <div class="field">
+    <label for="name">Votre nom</label>
+    <input
+      id="name"
+      name="name"
+      type="text"
+      autocomplete="name"
+      [attr.aria-invalid]="form.errors().name ? true : null"
+      [attr.aria-describedby]="form.errors().name ? 'name-erreur' : null"
+    />
+    @if (form.errors().name; as message) {
+    <p id="name-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="organizationName">Nom de votre organisation</label>
+    <input
+      id="organizationName"
+      name="organizationName"
+      type="text"
+      autocomplete="organization"
+      [attr.aria-invalid]="form.errors().organizationName ? true : null"
+      [attr.aria-describedby]="form.errors().organizationName ? 'organizationName-erreur' : null"
+    />
+    @if (form.errors().organizationName; as message) {
+    <p id="organizationName-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="email">Adresse e-mail</label>
+    <span id="email-aide" class="field-hint">Un lien de confirmation y sera envoyé.</span>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      autocomplete="email"
+      [attr.aria-invalid]="form.errors().email ? true : null"
+      [attr.aria-describedby]="form.errors().email ? 'email-aide email-erreur' : 'email-aide'"
+    />
+    @if (form.errors().email; as message) {
+    <p id="email-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="password">Mot de passe</label>
+    <span id="password-aide" class="field-hint"
+      >12 caractères au moins. Une phrase est plus facile à retenir.</span
+    >
+    <input
+      id="password"
+      name="password"
+      type="password"
+      autocomplete="new-password"
+      [attr.aria-invalid]="form.errors().password ? true : null"
+      [attr.aria-describedby]="form.errors().password ? 'password-aide password-erreur' : 'password-aide'"
+    />
+    @if (form.errors().password; as message) {
+    <p id="password-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="form.pending() ? true : null">
+      Créer mon compte
+    </button>
+  </div>
+</form>
+
+<p>Déjà un compte ? <a [routerLink]="loginPath">Se connecter</a></p>
+}
