@@ -333,3 +333,36 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 **Les libellés français des codes du moteur** (motifs d'arrêt, erreurs de page, gravités) vivent dans `@rampe/shared` : l'interface, le rapport et les e-mails disent la même chose.
 
 **Une page « Paramètres de l'organisation »** : nom, durée de conservation, suppression confirmée par le mot de passe. Les membres qui ne sont pas propriétaires la voient sans les formulaires.
+
+## Jalon J6, 16 octobre 2026
+
+### Audit manuel
+
+**Un audit part d'un scan terminé, sur un échantillon de pages que l'auditeur compose** parmi les pages du scan, ou hors du scan (aucune proposition automatique pour celles-là). Chacun des 106 critères reçoit, sur chaque page, un statut (conforme, non conforme, non applicable) et une note. Retirer une page de l'échantillon supprime ses évaluations ; une page gardée garde les siennes.
+
+**Les propositions automatiques suivent le tableau du §4.2 du plan, avec une lecture stricte de la règle d'honnêteté.** La logique est une fonction pure de `packages/rules` (`audit.ts`), couverte à 100 % :
+
+- un défaut à la correspondance confirmée donne « non conforme », un statut qui compte. L'auditeur peut l'infirmer, mais l'API exige alors une note : un faux positif s'explique ;
+- un défaut à la correspondance incertaine donne un indice, jamais un statut ;
+- un critère automatisable dont les règles ont toutes réussi sur la page reçoit une proposition « conforme », qui **ne compte pas tant que l'auditeur ne l'a pas retenue**. Le plan validé laissait ce statut compter seul. Je l'ai refusé : la règle d'honnêteté veut que l'interface n'affiche jamais « conforme » sur la seule base des tests automatiques ;
+- les critères manuels ou partiellement automatisables ne reçoivent rien : l'auditeur décide.
+
+Aucune règle active n'a aujourd'hui de correspondance incertaine : les revues du J2 les ont toutes tranchées. Le cas de l'indice est testé dans `packages/rules`, faute de pouvoir le produire de bout en bout.
+
+**Le taux de conformité et le taux moyen suivent la méthode officielle** (`conformity.ts`, écrit au J2). Ils n'existent que lorsque chaque critère a un statut sur chaque page ; avant, l'API et l'interface donnent le nombre d'évaluations restantes. Un exemple calculé à la main est vérifié en intégration et de bout en bout : 2 critères respectés sur 3 applicables, soit 66,7 %, et un taux moyen de 75 %.
+
+**La grille se parcourt par thématique, un formulaire par critère.** Le statut est un groupe de boutons radio, enregistré par un bouton qui nomme le critère, jamais à chaque flèche. Un filtre montre les seuls critères à évaluer ; quand un critère enregistré en sort, l'enregistrement est annoncé et le focus revient au titre de la thématique.
+
+**Le mot « conforme » apparaît dans les vues d'audit**, puisqu'il y désigne le statut choisi par l'auditeur. Le contrôle des sources et celui de chaque page l'interdisent toujours dans les vues de pré-audit. Un test vérifie qu'aucune vue d'audit n'affiche de score automatique.
+
+### Déclaration d'accessibilité
+
+**Le texte suit le modèle officiel**, consulté le 16 octobre 2026 sur accessibilite.numerique.gouv.fr. Il comprend l'engagement, l'état de conformité et les résultats des tests, les contenus non accessibles (non-conformités, dérogations, contenus non soumis), l'établissement de la déclaration (technologies, environnement de test avec les technologies d'assistance, outils, pages vérifiées), le retour d'information et le contact, et les voies de recours. Les phrases fixes vérifiées sur le modèle sont reprises telles quelles, dont les trois voies vers le Défenseur des droits.
+
+**La déclaration est générée par l'API, en blocs** (paragraphes, listes avec liens), à partir de l'audit et de ce que la personne complète. Ce qui manque apparaît « [À compléter : …] ». Tant que l'audit n'est pas complet, c'est un brouillon : son titre et son premier paragraphe le disent, et elle ne donne ni état de conformité ni taux.
+
+### API
+
+**Le test d'isolation couvre aussi les routes PUT**, qu'il ignorait jusqu'ici, et les ressources d'un audit (audit, page de l'échantillon, critère).
+
+**`GET /referentials/rgaa-4.1.2/criteria`**, prévu au plan, est livré : les 106 critères et leur classement, sans session.

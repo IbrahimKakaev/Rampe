@@ -8,7 +8,7 @@ SaaS de pré-audit d'accessibilité web (RGAA 4.1.2) pour les PME françaises. L
 
 ## Règles qui ne se discutent pas
 
-- **Honnêteté.** Un test automatique ne prouve jamais la conformité RGAA. L'interface, les rapports et les e-mails disent « pré-audit automatique » et indiquent combien de critères restent à vérifier à la main. Le mot « conforme » n'apparaît jamais sur la seule base des tests automatiques.
+- **Honnêteté.** Un test automatique ne prouve jamais la conformité RGAA. L'interface, les rapports et les e-mails disent « pré-audit automatique » et indiquent combien de critères restent à vérifier à la main. Le mot « conforme » n'apparaît jamais sur la seule base des tests automatiques : seulement dans l'audit manuel (`apps/web/src/app/audits/`), où il est le statut choisi par l'auditeur. Une proposition « conforme » du robot ne compte qu'une fois retenue par lui.
 - **Sécurité du robot.** Toute requête vers un site scanné passe par le proxy de sortie, qui bloque les adresses non publiques. Le navigateur tourne dans un conteneur sans accès au réseau interne. On ne contourne pas ces protections, même pour un test.
 - **Tests.** Aucun test désactivé ou affaibli pour faire passer la CI. Aucune donnée factice dans le code de production.
 - **Bibliothèques.** Vérifier chaque API dans les types installés (`node_modules`) ou la documentation avant de l'utiliser. Ne rien inventer.
@@ -56,7 +56,7 @@ apps/
   web/            Angular 22, interface en français, servie par nginx
                     src/app/core/              session, gardes, appels à l'API, formulaires, focus, annonces
                     src/app/ui/                score, avertissement de pré-audit, graphique, textes de correction
-                    src/app/auth|sites|scans/  les pages, une par route de WEB_ROUTES
+                    src/app/auth|sites|scans|audits/  les pages, une par route de WEB_ROUTES
                     src/styles/                toute la CSS : aucun composant n'a de style propre
   api/            NestJS 12 : REST, OpenAPI, Prisma, e-mails
                     prisma/schema.prisma       modèle de données ; migrations dans prisma/migrations
@@ -64,6 +64,7 @@ apps/
                     src/scans/scan-recorder.ts enregistre ce que publie le worker
                     src/scans/maintenance.ts   tâches périodiques : scans planifiés, purge
                     src/reports/               HTML du rapport ; le worker l'imprime en PDF
+                    src/audits/                audit manuel, grille, déclaration d'accessibilité
                     src/seed-demo.ts           démonstration locale, refusé en production
   worker/         moteur de scan et ses trois points d'entrée :
                     dist/main.js                 consommateur des files BullMQ (scans, vérifications, rapports PDF)
@@ -79,6 +80,7 @@ packages/
                     src/content/fr/            textes de correction en français (contenu modifiable)
                     src/checks.ts, score.ts    score de pré-audit
                     src/conformity.ts          taux de conformité, méthode officielle
+                    src/audit.ts               propositions automatiques pour la grille d'audit
                     src/fingerprint.ts, diff.ts empreinte des défauts, comparaison de scans
                     data/sources/              fichier officiel des critères, figé par son empreinte
                     scripts/                   génération des données et du rapport
