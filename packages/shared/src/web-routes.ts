@@ -15,6 +15,7 @@ export const WEB_ROUTES = {
   robot: 'robot',
   dashboard: 'tableau-de-bord',
   organization: 'organisations/:org/parametres',
+  members: 'organisations/:org/membres',
   sites: 'organisations/:org/sites',
   newSite: 'organisations/:org/sites/nouveau',
   site: 'organisations/:org/sites/:site',

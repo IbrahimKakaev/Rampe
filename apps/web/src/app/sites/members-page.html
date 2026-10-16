@@ -1,0 +1,158 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li aria-current="page">Membres</li>
+  </ol>
+</nav>
+
+<h1>Membres de {{ organizationName() }}</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (members.hasValue() && invitations.hasValue()) { @if (!owner()) {
+<p>Seuls les propriétaires peuvent inviter, changer les rôles et retirer des membres.</p>
+} @if (change.failure(); as failure) {
+<div class="alert" role="alert"><p>{{ failure }}</p></div>
+}
+
+<table>
+  <caption>
+    Les membres de l’organisation
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Nom</th>
+      <th scope="col">Adresse e-mail</th>
+      <th scope="col">Rôle</th>
+      @if (owner()) {
+      <th scope="col">Actions</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (member of members.value(); track member.userId) {
+    <tr>
+      <th scope="row">
+        {{ member.name }} @if (member.userId === me()) {
+        <span class="muted">(vous)</span>
+        }
+      </th>
+      <td>{{ member.email }}</td>
+      <td>
+        @if (owner()) {
+        <form class="inline-form" novalidate (submit)="changeRole($event, member)">
+          <label class="visually-hidden" [for]="'role-' + member.userId">
+            Rôle de {{ member.name }}
+          </label>
+          <select [id]="'role-' + member.userId" name="role">
+            @for (role of roles; track role) {
+            <option [value]="role" [selected]="member.role === role">{{ roleLabel[role] }}</option>
+            }
+          </select>
+          <button type="submit" class="button button--secondary">
+            Changer le rôle<span class="visually-hidden"> de {{ member.name }}</span>
+          </button>
+        </form>
+        } @else { {{ roleLabel[member.role] }} }
+      </td>
+      @if (owner()) {
+      <td>
+        <form novalidate (submit)="remove($event, member)">
+          <button type="submit" class="link-button">
+            Retirer {{ member.name }} de l’organisation
+          </button>
+        </form>
+      </td>
+      }
+    </tr>
+    }
+  </tbody>
+</table>
+<p class="muted">L’organisation garde toujours au moins un propriétaire.</p>
+
+<h2>Invitations en attente</h2>
+@if (invitations.value().length === 0) {
+<p>Aucune invitation en attente.</p>
+} @else {
+<table>
+  <caption>
+    Les invitations envoyées, valables 7 jours
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Adresse e-mail</th>
+      <th scope="col">Rôle</th>
+      <th scope="col">Valable jusqu’au</th>
+      @if (owner()) {
+      <th scope="col">Actions</th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (invitation of invitations.value(); track invitation.id) {
+    <tr>
+      <th scope="row">{{ invitation.email }}</th>
+      <td>{{ roleLabel[invitation.role] }}</td>
+      <td>
+        <time [attr.datetime]="invitation.expiresAt">{{ dateTime(invitation.expiresAt) }}</time>
+      </td>
+      @if (owner()) {
+      <td>
+        <form novalidate (submit)="revoke($event, invitation.id, invitation.email)">
+          <button type="submit" class="link-button">
+            Annuler l’invitation de {{ invitation.email }}
+          </button>
+        </form>
+      </td>
+      }
+    </tr>
+    }
+  </tbody>
+</table>
+} @if (owner()) {
+<h2>Inviter une personne</h2>
+<form class="form" novalidate (submit)="sendInvitation($event)">
+  @if (invite.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="email">Adresse e-mail</label>
+    <span id="email-aide" class="field-hint">
+      La personne reçoit un lien valable 7 jours. Elle doit se connecter, ou créer un compte, avec
+      cette adresse.
+    </span>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      autocomplete="off"
+      [attr.aria-invalid]="invite.errors().email ? true : null"
+      [attr.aria-describedby]="invite.errors().email ? 'email-aide email-erreur' : 'email-aide'"
+    />
+    @if (invite.errors().email; as message) {
+    <p id="email-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <fieldset class="field">
+    <legend>Rôle</legend>
+    <div class="choice">
+      <input id="role-membre" type="radio" name="role" value="MEMBER" checked />
+      <label for="role-membre">Membre : ajoute des sites, lance les scans et mène les audits</label>
+    </div>
+    <div class="choice">
+      <input id="role-proprietaire" type="radio" name="role" value="OWNER" />
+      <label for="role-proprietaire">
+        Propriétaire : gère aussi les membres, les paramètres, la suppression des sites et de
+        l’organisation
+      </label>
+    </div>
+  </fieldset>
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="invite.pending() ? true : null">
+      Envoyer l’invitation
+    </button>
+  </div>
+</form>
+} } @else {
+<p role="status">Chargement…</p>
+}

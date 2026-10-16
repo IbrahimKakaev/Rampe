@@ -165,7 +165,15 @@ test.describe('a full scan of the test site', () => {
       open += event.delta;
       most = Math.max(most, open);
     }
-    expect(most).toBe(2);
+    // When this fails, the timeline of the page requests says which ordering of the crawl caused it.
+    const first = Math.min(...pages.map((request) => Date.parse(request.time)));
+    const timeline = pages
+      .map(
+        (request) =>
+          `${String(Date.parse(request.time) - first).padStart(6)} ms  ${String(request.durationMs).padStart(6)} ms  ${request.path}`,
+      )
+      .join('\n');
+    expect(most, `page requests (start, duration, path):\n${timeline}`).toBe(2);
   });
 
   test('requests no page twice', () => {

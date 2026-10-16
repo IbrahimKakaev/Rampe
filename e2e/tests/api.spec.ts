@@ -122,7 +122,11 @@ test.describe('the demonstration prepared by docker compose up', () => {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
     expect(site).toMatchObject({ verified: true, lastScan: { status: 'COMPLETED' } });
-    const scanId = site?.lastScan?.id ?? '';
+    // The scan docker compose up started is the oldest: later runs of these tests add others.
+    const scans = (await (
+      await demo.context.get(`/api/v1/orgs/${org}/sites/${site?.id ?? ''}/scans`)
+    ).json()) as { id: string }[];
+    const scanId = scans.at(-1)?.id ?? '';
 
     const scan = (await (
       await demo.context.get(`/api/v1/orgs/${org}/scans/${scanId}`)

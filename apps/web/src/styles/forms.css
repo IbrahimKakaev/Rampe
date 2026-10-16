@@ -161,3 +161,14 @@ fieldset {
   background: #7d1a15;
   border-color: #7d1a15;
 }
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inline-form select {
+  width: auto;
+}

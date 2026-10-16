@@ -57,6 +57,7 @@ const VISITS: Readonly<Record<WebRoute, Visit>> = {
   robot: { signedIn: false, url: () => webPath('robot') },
   dashboard: { signedIn: true, url: () => webPath('dashboard') },
   organization: { signedIn: true, url: ({ org }) => webPath('organization', { org }) },
+  members: { signedIn: true, url: ({ org }) => webPath('members', { org }) },
   sites: { signedIn: true, url: ({ org }) => webPath('sites', { org }) },
   newSite: { signedIn: true, url: ({ org }) => webPath('newSite', { org }) },
   site: {

@@ -18,6 +18,7 @@ import { NotFoundPage } from './pages/not-found-page';
 import { RobotPage } from './pages/robot-page';
 import { FindingPage } from './scans/finding-page';
 import { ScanPage } from './scans/scan-page';
+import { MembersPage } from './sites/members-page';
 import { NewSitePage } from './sites/new-site-page';
 import { OrganizationPage } from './sites/organization-page';
 import { SitePage } from './sites/site-page';
@@ -81,6 +82,12 @@ export const routes: Routes = [
     component: OrganizationPage,
     canActivate: [requireSession],
     title: pageTitle('Paramètres de l’organisation'),
+  },
+  {
+    path: WEB_ROUTES.members,
+    component: MembersPage,
+    canActivate: [requireSession],
+    title: pageTitle('Membres'),
   },
   {
     path: WEB_ROUTES.sites,
