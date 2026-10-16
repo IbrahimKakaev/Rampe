@@ -344,7 +344,7 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 
 - un défaut à la correspondance confirmée donne « non conforme », un statut qui compte. L'auditeur peut l'infirmer, mais l'API exige alors une note : un faux positif s'explique ;
 - un défaut à la correspondance incertaine donne un indice, jamais un statut ;
-- un critère automatisable dont les règles ont toutes réussi sur la page reçoit une proposition « conforme », qui **ne compte pas tant que l'auditeur ne l'a pas retenue**. Le plan validé laissait ce statut compter seul. Je l'ai refusé : la règle d'honnêteté veut que l'interface n'affiche jamais « conforme » sur la seule base des tests automatiques ;
+- un critère automatisable dont les règles ont toutes réussi sur la page reçoit une proposition « conforme », qui **ne compte pas tant que l'auditeur ne l'a pas retenue**. Le plan validé laissait ce statut compter seul. Je l'ai refusé, et ce choix a été confirmé le 16 octobre 2026 : la règle d'honnêteté veut que l'interface n'affiche jamais « conforme » sur la seule base des tests automatiques, et la méthode RGAA confie la validation d'un critère à une personne ;
 - les critères manuels ou partiellement automatisables ne reçoivent rien : l'auditeur décide.
 
 Aucune règle active n'a aujourd'hui de correspondance incertaine : les revues du J2 les ont toutes tranchées. Le cas de l'indice est testé dans `packages/rules`, faute de pouvoir le produire de bout en bout.

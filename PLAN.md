@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J5 validés et fusionnés dans `main`. Jalon J6 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J6 validés et fusionnés dans `main` : le MVP est complet.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -426,7 +426,7 @@ Critères d'acceptation :
 
 Écarts au plan constatés pendant le jalon :
 
-- La proposition « conforme » du tableau du §4.2 ne compte pas d'elle-même : l'auditeur la retient. C'est la lecture stricte de la règle d'honnêteté ; dis-le si tu préfères la lecture du plan.
+- La proposition « conforme » du tableau du §4.2 ne compte pas d'elle-même : l'auditeur la retient. C'est la lecture stricte de la règle d'honnêteté, confirmée le 16 octobre 2026.
 - Infirmer un « non conforme » posé par le robot exige une note, comme le tableau du §4.2 le suggérait.
 - Une page hors du scan peut entrer dans l'échantillon, sans proposition automatique.
 - Le test d'isolation lit désormais aussi les routes PUT.
