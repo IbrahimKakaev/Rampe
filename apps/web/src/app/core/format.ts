@@ -1,4 +1,4 @@
-import type { Scan } from '@rampe/shared';
+import type { Conformity, Scan } from '@rampe/shared';
 
 export { IMPACT_LABEL, PAGE_ERROR_LABEL, scanReasonLabel } from '@rampe/shared';
 
@@ -47,4 +47,26 @@ export const SCAN_STATUS_LABEL: Readonly<Record<Scan['status'], string>> = {
 
 export function isScanActive(status: Scan['status']): boolean {
   return status === 'QUEUED' || status === 'RUNNING';
+}
+
+const RATE = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 });
+
+/** An RGAA conformity rate, to one decimal: "66,7 %". */
+export function formatRate(rate: number): string {
+  return RATE.format(rate);
+}
+
+/** Where a manual audit stands: the evaluations left, or its rate once complete. */
+export function formatAuditProgress(conformity: Conformity): string {
+  if (conformity.complete && conformity.rate !== null) {
+    return `audit complet, taux de conformité RGAA de ${formatRate(conformity.rate)}`;
+  }
+  if (conformity.complete) {
+    return 'audit complet, aucun critère applicable';
+  }
+  if (conformity.expected === 0) {
+    return 'échantillon à composer';
+  }
+  const remaining = conformity.expected - conformity.evaluated;
+  return `${String(remaining)} évaluation${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''} sur ${String(conformity.expected)}`;
 }

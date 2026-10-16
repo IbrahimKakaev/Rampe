@@ -9,3 +9,4 @@ export * from './rgaa/referential.js';
 export type * from './rgaa/types.js';
 export * from './score.js';
 export * from './wcag.js';
+export * from './audit.js';

@@ -85,6 +85,21 @@ visited = pages.value();
     >Page de garde, synthèse, défauts par critère, critères à vérifier à la main.</span
   >
 </div>
+<h2>Audit manuel</h2>
+<p class="prose">
+  Le pré-audit automatique ne tranche qu’une partie du RGAA. Un audit manuel évalue les 106 critères
+  sur un échantillon de pages ; les résultats de ce scan y sont repris comme propositions.
+</p>
+<form novalidate (submit)="startAudit($event)">
+  @if (audit.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="audit.pending() ? true : null">
+      Démarrer un audit manuel à partir de ce scan
+    </button>
+  </div>
+</form>
 } @if (finished() && comparison.hasValue()) { @let diff = comparison.value();
 <h2>Évolution depuis le scan précédent</h2>
 @if (diff.previousScanId === null) {

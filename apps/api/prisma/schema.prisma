@@ -22,9 +22,11 @@ model User {
   emailVerifiedAt DateTime? @map("email_verified_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  sessions    Session[]
-  tokens      AuthToken[]
-  memberships Membership[]
+  sessions     Session[]
+  tokens       AuthToken[]
+  memberships  Membership[]
+  audits       Audit[]
+  auditResults AuditResult[]
 
   @@map("users")
 }
@@ -76,6 +78,10 @@ model Organization {
   pages         ScanPage[]
   findings      Finding[]
   notifications Notification[]
+  audits        Audit[]
+  auditPages    AuditPage[]
+  auditResults  AuditResult[]
+  statements    Statement[]
 
   @@map("organizations")
 }
@@ -145,6 +151,7 @@ model Site {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   scans        Scan[]
+  audits       Audit[]
 
   @@unique([organizationId, origin])
   @@index([organizationId])
@@ -194,6 +201,7 @@ model Scan {
   pages         ScanPage[]
   findings      Finding[]
   notifications Notification[]
+  audits        Audit[]
 
   @@index([organizationId, createdAt])
   @@index([siteId, createdAt])
@@ -281,4 +289,122 @@ model Notification {
   @@unique([scanId, type])
   @@index([organizationId])
   @@map("notifications")
+}
+
+/// Status of a criterion on a page of an audit sample.
+enum AuditStatus {
+  /// Conforme
+  C
+  /// Non conforme
+  NC
+  /// Non applicable
+  NA
+}
+
+/// Who set a status: the automated results (a defect found) or the auditor.
+enum AuditOrigin {
+  AUTOMATIC
+  AUDITOR
+}
+
+/// What the automated results propose for a criterion (PLAN.md, §4.2).
+enum ProposalKind {
+  NON_COMPLIANT
+  COMPLIANT_TO_CONFIRM
+  CLUE
+}
+
+/// A manual audit of a site, on a sample of pages, against the 106 RGAA criteria.
+model Audit {
+  id                 String   @id @default(uuid(7)) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  siteId             String   @map("site_id") @db.Uuid
+  /// The scan whose results feed the proposals; kept as null once purged.
+  scanId             String?  @map("scan_id") @db.Uuid
+  referentialVersion String   @map("referential_version")
+  createdById        String?  @map("created_by_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  scan         Scan?        @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  pages        AuditPage[]
+  statement    Statement?
+
+  @@index([organizationId])
+  @@index([siteId, createdAt])
+  @@map("audits")
+}
+
+/// A page of the sample of an audit.
+model AuditPage {
+  id             String  @id @default(uuid(7)) @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  auditId        String  @map("audit_id") @db.Uuid
+  position       Int
+  url            String
+  /// What the page is, such as "Accueil" or "Contact".
+  title          String
+  /// The page of the reference scan with the same address, when there is one.
+  scanPageId     String? @map("scan_page_id") @db.Uuid
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  audit        Audit         @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  results      AuditResult[]
+
+  @@unique([auditId, url])
+  @@index([organizationId])
+  @@map("audit_pages")
+}
+
+/// The status of a criterion on a page of the sample, and what the automated results propose.
+model AuditResult {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  auditPageId    String        @map("audit_page_id") @db.Uuid
+  criterion      String
+  /// null while the criterion is not evaluated on the page.
+  status         AuditStatus?
+  origin         AuditOrigin?
+  note           String?
+  proposal       ProposalKind?
+  /// The axe-core rules behind the proposal.
+  proposalRules  String[]      @map("proposal_rules")
+  authorId       String?       @map("author_id") @db.Uuid
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  page         AuditPage    @relation(fields: [auditPageId], references: [id], onDelete: Cascade)
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([auditPageId, criterion])
+  @@index([organizationId])
+  @@map("audit_results")
+}
+
+/// What the accessibility statement of an audit says beyond the audit results.
+model Statement {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  auditId          String   @unique @map("audit_id") @db.Uuid
+  entityName       String   @default("") @map("entity_name")
+  serviceName      String   @default("") @map("service_name")
+  auditedBy        String   @default("") @map("audited_by")
+  derogations      String   @default("")
+  exemptions       String   @default("")
+  technologies     String   @default("")
+  testEnvironment  String   @default("") @map("test_environment")
+  tools            String   @default("")
+  contactFormUrl   String   @default("") @map("contact_form_url")
+  contactDetails   String   @default("") @map("contact_details")
+  multiYearPlanUrl String   @default("") @map("multi_year_plan_url")
+  actionPlanUrl    String   @default("") @map("action_plan_url")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  audit        Audit        @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("statements")
 }

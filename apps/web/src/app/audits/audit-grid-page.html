@@ -1,0 +1,72 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li><a [routerLink]="paths().audit">Audit manuel</a></li>
+    <li aria-current="page">{{ samplePage()?.title ?? 'Page' }}</li>
+  </ol>
+</nav>
+
+<h1>Grille RGAA : {{ samplePage()?.title ?? 'page de l’échantillon' }}</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (criteria.hasValue()) { @if (samplePage(); as page) {
+<p><code>{{ page.url }}</code></p>
+}
+<p><strong>{{ evaluatedText() }}</strong> pour cette page.</p>
+
+<nav class="theme-nav" aria-label="Thématiques du RGAA">
+  <ul>
+    @for (theme of themes(); track theme.number) {
+    <li>
+      <button
+        type="button"
+        class="theme-nav__button"
+        [attr.aria-current]="theme.number === currentTheme()?.number ? 'true' : null"
+        (click)="chooseTheme(theme.number)"
+      >
+        {{ theme.number }}. {{ theme.title }}
+        <span class="muted"
+          >({{ theme.remaining === 0 ? 'terminée' : theme.remaining + ' à évaluer' }})</span
+        >
+      </button>
+    </li>
+    }
+  </ul>
+</nav>
+
+<div class="choice">
+  <input
+    id="seulement-a-evaluer"
+    type="checkbox"
+    [checked]="onlyRemaining()"
+    (change)="toggleRemaining($event)"
+  />
+  <label for="seulement-a-evaluer">Montrer seulement les critères à évaluer</label>
+</div>
+
+@if (currentTheme(); as theme) {
+<h2 id="thematique-courante" tabindex="-1">{{ theme.number }}. {{ theme.title }}</h2>
+@for (row of shown(); track row.criterion) {
+<rampe-criterion-form
+  [org]="org()"
+  [audit]="audit()"
+  [page]="page()"
+  [row]="row"
+  (changed)="recorded($event)"
+/>
+} @empty {
+<p>Tous les critères de cette thématique sont évalués.</p>
+} }
+
+<nav class="actions" aria-label="Autres pages de l’échantillon">
+  @if (neighbours().previous; as previous) {
+  <a [routerLink]="pagePath(previous.id)">Page précédente : {{ previous.title }}</a>
+  } @if (neighbours().next; as next) {
+  <a [routerLink]="pagePath(next.id)">Page suivante : {{ next.title }}</a>
+  }
+  <a [routerLink]="paths().audit">Retour à l’audit</a>
+</nav>
+} @else {
+<p role="status">Chargement de la grille…</p>
+}

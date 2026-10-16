@@ -1,0 +1,211 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li>
+      <a [routerLink]="paths().site">{{ site.hasValue() ? site.value().host : 'Site' }}</a>
+    </li>
+    <li aria-current="page">Audit manuel</li>
+  </ol>
+</nav>
+
+<h1>Audit manuel</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (auditResource.hasValue()) { @let audit = auditResource.value(); @let conformity =
+audit.conformity;
+
+<div class="audit-notice">
+  <p>
+    <strong>Audit manuel.</strong> Chaque critère du RGAA {{ audit.referentialVersion }} reçoit un
+    statut sur chaque page de l’échantillon. Les défauts détectés par le robot sont repris comme «
+    non conforme », et l’auditeur peut les infirmer avec une note. Aucun critère ne devient «
+    conforme » sans l’auditeur.
+  </p>
+</div>
+
+<dl class="dl-inline">
+  <dt>Site</dt>
+  <dd>{{ site.hasValue() ? site.value().origin + '/' : '…' }}</dd>
+  <dt>Commencé le</dt>
+  <dd><time [attr.datetime]="audit.createdAt">{{ dateTime(audit.createdAt) }}</time></dd>
+</dl>
+
+<h2>Résultat</h2>
+@if (conformity.complete && conformity.rate !== null && conformity.state !== null) {
+<dl class="figures">
+  <div>
+    <dt>Taux de conformité RGAA</dt>
+    <dd>{{ rate(conformity.rate) }}</dd>
+  </div>
+  @if (conformity.averageRate !== null) {
+  <div>
+    <dt>Taux moyen des pages</dt>
+    <dd>{{ rate(conformity.averageRate) }}</dd>
+  </div>
+  }
+  <div>
+    <dt>État de conformité</dt>
+    <dd>{{ stateLabel[conformity.state] }}</dd>
+  </div>
+  <div>
+    <dt>Critères respectés</dt>
+    <dd>{{ conformity.validated }}</dd>
+  </div>
+  <div>
+    <dt>Critères non respectés</dt>
+    <dd>{{ conformity.invalidated }}</dd>
+  </div>
+  <div>
+    <dt>Critères non applicables</dt>
+    <dd>{{ conformity.notApplicable }}</dd>
+  </div>
+</dl>
+<p class="muted">
+  Méthode officielle du RGAA : un critère est respecté s’il l’est sur chaque page où il s’applique ;
+  le taux est la part des critères respectés parmi les critères applicables.
+</p>
+} @else if (conformity.complete) {
+<p>Aucun critère ne s’applique aux pages de l’échantillon : il n’y a pas de taux à calculer.</p>
+} @else {
+<p data-audit-remaining>
+  <strong>{{ remaining(audit) }} évaluation{{ remaining(audit) > 1 ? 's' : '' }}</strong>
+  reste{{ remaining(audit) > 1 ? 'nt' : '' }} à faire sur {{ conformity.expected }}. Le taux de
+  conformité et le taux moyen apparaîtront quand chaque critère aura un statut sur chaque page.
+</p>
+}
+<p><a [routerLink]="paths().statement">Déclaration d’accessibilité</a></p>
+
+<h2>Échantillon</h2>
+@if (audit.pages.length === 0) {
+<p>
+  L’échantillon est vide. Ajoutez les pages représentatives du site : l’accueil, le contact, les
+  mentions légales, une page de chaque type de contenu.
+</p>
+} @else {
+<table>
+  <caption>
+    Les pages de l’échantillon et leur avancement
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Page</th>
+      <th scope="col" class="number">Critères évalués</th>
+      <th scope="col">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (page of audit.pages; track page.id) {
+    <tr>
+      <th scope="row">
+        {{ page.title }}<br /><code>{{ page.url }}</code>
+        @if (!page.scanned) {
+        <br /><span class="muted">Hors du scan : aucune proposition automatique.</span>
+        }
+      </th>
+      <td class="number">{{ page.evaluated }} sur {{ page.expected }}</td>
+      <td>
+        <div class="actions">
+          <a [routerLink]="pagePath(page.id)">Évaluer {{ page.title }}</a>
+          <form novalidate (submit)="remove($event, page.url, page.title)">
+            <button type="submit" class="link-button">
+              Retirer {{ page.title }} de l’échantillon
+            </button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+@if (removal.failure(); as failure) {
+<div class="alert" role="alert"><p>{{ failure }}</p></div>
+}
+<p class="muted">Retirer une page supprime ses évaluations.</p>
+} @if (candidates().length > 0) {
+<h3>Ajouter une page du scan</h3>
+<form class="form" novalidate (submit)="addFromScan($event)">
+  @if (fromScan.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="page-du-scan">Page</label>
+    <select
+      id="page-du-scan"
+      name="url"
+      [attr.aria-invalid]="fromScan.errors().url ? true : null"
+      [attr.aria-describedby]="fromScan.errors().url ? 'page-du-scan-erreur' : null"
+    >
+      @for (candidate of candidates(); track candidate.id) {
+      <option [value]="candidate.url">{{ candidate.path }} — {{ candidate.title ?? '' }}</option>
+      }
+    </select>
+    @if (fromScan.errors().url; as message) {
+    <p id="page-du-scan-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="field">
+    <label for="nom-page-du-scan">Nom de la page</label>
+    <input
+      id="nom-page-du-scan"
+      name="title"
+      type="text"
+      [attr.aria-invalid]="fromScan.errors().title ? true : null"
+      [attr.aria-describedby]="fromScan.errors().title ? 'nom-page-du-scan-erreur' : null"
+    />
+    @if (fromScan.errors().title; as message) {
+    <p id="nom-page-du-scan-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="fromScan.pending() ? true : null">
+      Ajouter à l’échantillon
+    </button>
+  </div>
+</form>
+}
+
+<h3>Ajouter une autre page</h3>
+<form class="form" novalidate (submit)="addOther($event)">
+  @if (otherPage.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="autre-adresse">Adresse de la page</label>
+    <input
+      id="autre-adresse"
+      name="url"
+      type="url"
+      [attr.aria-invalid]="otherPage.errors().url ? true : null"
+      [attr.aria-describedby]="otherPage.errors().url ? 'autre-adresse-erreur' : null"
+    />
+    @if (otherPage.errors().url; as message) {
+    <p id="autre-adresse-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="field">
+    <label for="nom-autre-page">Nom de la page</label>
+    <input
+      id="nom-autre-page"
+      name="title"
+      type="text"
+      [attr.aria-invalid]="otherPage.errors().title ? true : null"
+      [attr.aria-describedby]="otherPage.errors().title ? 'nom-autre-page-erreur' : null"
+    />
+    @if (otherPage.errors().title; as message) {
+    <p id="nom-autre-page-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button
+      type="submit"
+      class="button button--secondary"
+      [attr.aria-disabled]="otherPage.pending() ? true : null"
+    >
+      Ajouter à l’échantillon
+    </button>
+  </div>
+</form>
+} @else {
+<p role="status">Chargement…</p>
+}

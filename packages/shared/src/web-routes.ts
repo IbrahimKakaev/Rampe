@@ -21,6 +21,9 @@ export const WEB_ROUTES = {
   siteVerification: 'organisations/:org/sites/:site/verification',
   scan: 'organisations/:org/scans/:scan',
   finding: 'organisations/:org/scans/:scan/defauts/:finding',
+  audit: 'organisations/:org/audits/:audit',
+  auditPage: 'organisations/:org/audits/:audit/pages/:page',
+  statement: 'organisations/:org/audits/:audit/declaration',
   /** Any other address: the "page not found" page. */
   notFound: '**',
 } as const;

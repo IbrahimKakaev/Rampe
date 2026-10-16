@@ -95,6 +95,26 @@ history = scans.value();
 </table>
 }
 
+<h2>Audits manuels</h2>
+@if (audits.hasValue()) { @if (audits.value().length === 0) {
+<p>
+  Aucun audit manuel. Démarrez-en un depuis les résultats d’un scan terminé : il évalue les 106
+  critères du RGAA sur un échantillon de pages.
+</p>
+} @else {
+<ul>
+  @for (audit of audits.value(); track audit.id) {
+  <li>
+    <a [routerLink]="auditPath(audit.id)"
+      >Audit du <time [attr.datetime]="audit.createdAt">{{ dateTime(audit.createdAt) }}</time></a
+    >
+    : {{ audit.pageCount }} page{{ audit.pageCount > 1 ? 's' : '' }}, {{ progress(audit.conformity)
+    }}
+  </li>
+  }
+</ul>
+} }
+
 <h2>Réglages</h2>
 <form class="form" novalidate (submit)="saveLimits($event)">
   @if (limits.failure(); as failure) {

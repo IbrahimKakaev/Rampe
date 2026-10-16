@@ -1,6 +1,9 @@
 import type { Routes } from '@angular/router';
 import { WEB_ROUTES } from '@rampe/shared';
 
+import { AuditGridPage } from './audits/audit-grid-page';
+import { AuditPage } from './audits/audit-page';
+import { StatementPage } from './audits/statement-page';
 import { AcceptInvitationPage } from './auth/accept-invitation-page';
 import { ForgotPasswordPage } from './auth/forgot-password-page';
 import { LoginPage } from './auth/login-page';
@@ -115,6 +118,24 @@ export const routes: Routes = [
     component: FindingPage,
     canActivate: [requireSession],
     title: pageTitle('Défaut'),
+  },
+  {
+    path: WEB_ROUTES.audit,
+    component: AuditPage,
+    canActivate: [requireSession],
+    title: pageTitle('Audit manuel'),
+  },
+  {
+    path: WEB_ROUTES.auditPage,
+    component: AuditGridPage,
+    canActivate: [requireSession],
+    title: pageTitle('Grille RGAA'),
+  },
+  {
+    path: WEB_ROUTES.statement,
+    component: StatementPage,
+    canActivate: [requireSession],
+    title: pageTitle('Déclaration d’accessibilité'),
   },
   { path: WEB_ROUTES.notFound, component: NotFoundPage, title: pageTitle('Page introuvable') },
 ];

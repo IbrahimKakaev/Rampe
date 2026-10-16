@@ -42,26 +42,29 @@ export async function expectVisibleFocus(page: Page): Promise<void> {
  * Reaches every target with Tab, as a keyboard user does, checking at each
  * stop that the focus can be seen; then presses Enter or types.
  */
-export function keyboard(page: Page): Driver {
-  async function tabTo(target: Locator): Promise<void> {
-    await expect(target).toBeVisible();
-    for (let presses = 0; presses < 150; presses += 1) {
-      if (await target.evaluate((element) => element === document.activeElement)) {
-        return;
-      }
-      await page.keyboard.press('Tab');
-      await expectVisibleFocus(page);
+/** Moves the focus to `target` with the Tab key, checking at each stop that the focus can be seen. */
+export async function tabTo(page: Page, target: Locator): Promise<void> {
+  await expect(target).toBeVisible();
+  for (let presses = 0; presses < 150; presses += 1) {
+    if (await target.evaluate((element) => element === document.activeElement)) {
+      return;
     }
-    throw new Error(`${target.toString()} cannot be reached with the Tab key`);
+    await page.keyboard.press('Tab');
+    await expectVisibleFocus(page);
   }
+  throw new Error(`${target.toString()} cannot be reached with the Tab key`);
+}
+
+export function keyboard(page: Page): Driver {
+  const tabToTarget = (target: Locator) => tabTo(page, target);
   return {
     name: 'au clavier seul',
     activate: async (target) => {
-      await tabTo(target);
+      await tabToTarget(target);
       await page.keyboard.press('Enter');
     },
     fill: async (target, value) => {
-      await tabTo(target);
+      await tabToTarget(target);
       await page.keyboard.type(value);
     },
   };

@@ -85,6 +85,7 @@ export interface Harness {
 export interface Client {
   get(path: string): request.Test;
   post(path: string, body?: object): request.Test;
+  put(path: string, body?: object): request.Test;
   patch(path: string, body?: object): request.Test;
   delete(path: string, body?: object): request.Test;
 }
@@ -135,11 +136,12 @@ export async function startHarness(): Promise<Harness> {
       const first = await agent.get('/api/v1/health');
       const cookies = ([] as string[]).concat(first.headers['set-cookie'] ?? []);
       const token = /XSRF-TOKEN=([^;]+)/.exec(cookies.join(';'))?.[1] ?? '';
-      const send = (method: 'post' | 'patch' | 'delete', path: string, body?: object) =>
+      const send = (method: 'post' | 'put' | 'patch' | 'delete', path: string, body?: object) =>
         agent[method](`/api/v1${path}`).set('x-xsrf-token', token).send(body);
       return {
         get: (path) => agent.get(`/api/v1${path}`),
         post: (path, body) => send('post', path, body),
+        put: (path, body) => send('put', path, body),
         patch: (path, body) => send('patch', path, body),
         delete: (path, body) => send('delete', path, body),
       };

@@ -2,7 +2,7 @@ import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { WEB_ROUTES, type WebRoute, webPath } from '@rampe/shared';
 
 import { expectNoAccessibilityViolations } from './accessibility.js';
-import { demoCookies, type DemoIds, demoIds } from './support/api.js';
+import { demoCookies, type DemoIds, demoIds, newDemoAudit } from './support/api.js';
 
 /**
  * Every page of the application, as the router declares it (WEB_ROUTES, which
@@ -10,10 +10,20 @@ import { demoCookies, type DemoIds, demoIds } from './support/api.js';
  * checked here: axe-core, the content security policy, and the honesty rules.
  */
 
+interface Ids extends DemoIds {
+  readonly audit: string;
+  readonly auditPage: string;
+}
+
 interface Visit {
   /** Pages of an organisation need the demonstration account. */
   readonly signedIn: boolean;
-  readonly url: (ids: DemoIds) => string;
+  readonly url: (ids: Ids) => string;
+  /**
+   * A view of the manual audit, where « conforme » is a status the auditor
+   * chose: the honesty rule on automated results does not apply there.
+   */
+  readonly manualAudit?: boolean;
   /** Brings the page to the state worth checking, once loaded. */
   readonly prepare?: (page: Page) => Promise<void>;
 }
@@ -73,6 +83,21 @@ const VISITS: Readonly<Record<WebRoute, Visit>> = {
     signedIn: true,
     url: ({ org, scan, finding }) => webPath('finding', { org, scan, finding }),
   },
+  audit: {
+    signedIn: true,
+    manualAudit: true,
+    url: ({ org, audit }) => webPath('audit', { org, audit }),
+  },
+  auditPage: {
+    signedIn: true,
+    manualAudit: true,
+    url: ({ org, audit, auditPage }) => webPath('auditPage', { org, audit, page: auditPage }),
+  },
+  statement: {
+    signedIn: true,
+    manualAudit: true,
+    url: ({ org, audit }) => webPath('statement', { org, audit }),
+  },
   notFound: { signedIn: false, url: () => '/cette-page-n-existe-pas' },
 };
 
@@ -87,10 +112,12 @@ function watchPolicyViolations(page: Page): string[] {
   return violations;
 }
 
-let ids: DemoIds;
+let ids: Ids;
 
 test.beforeAll(async () => {
-  ids = await demoIds();
+  const demo = await demoIds();
+  const audit = await newDemoAudit([{ path: '/', title: 'Accueil' }]);
+  ids = { ...demo, audit: audit.audit, auditPage: audit.pages[0] ?? '' };
 });
 
 test('every page of the router is visited', () => {
@@ -116,8 +143,10 @@ for (const [route, visit] of Object.entries(VISITS) as [WebRoute, Visit][]) {
 
     await expectNoAccessibilityViolations(page);
 
-    const text = await page.locator('body').innerText();
-    expect(text).not.toMatch(/\b(non[\s-])?conformes?\b/i);
+    if (visit.manualAudit !== true) {
+      const text = await page.locator('body').innerText();
+      expect(text).not.toMatch(/\b(non[\s-])?conformes?\b/i);
+    }
     if ((await page.locator('[data-score]').count()) > 0) {
       const notice = page.locator('[data-pre-audit-notice]');
       await expect(notice).toContainText('Pré-audit automatique.');

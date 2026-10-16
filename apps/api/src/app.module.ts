@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 
+import { AuditsModule } from './audits/audits.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { APP_CONFIG, type AppConfig } from './config/app-config.js';
 import { HealthModule } from './health/health.module.js';
@@ -30,6 +31,7 @@ export class AppModule {
         SitesModule,
         ScansModule,
         ReportsModule,
+        AuditsModule,
       ],
       providers: [
         { provide: APP_CONFIG, useValue: config },

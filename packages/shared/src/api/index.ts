@@ -3,3 +3,4 @@ export * from './common.js';
 export * from './organizations.js';
 export * from './scans.js';
 export * from './sites.js';
+export * from './audits.js';

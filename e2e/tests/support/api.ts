@@ -6,7 +6,7 @@ const MAILPIT = process.env['MAILPIT_URL'] ?? 'http://127.0.0.1:8025';
 export const DEMO = { email: 'demo@rampe.local', password: 'demo-local-only' } as const;
 
 export type Send = (
-  method: 'post' | 'patch' | 'delete',
+  method: 'post' | 'put' | 'patch' | 'delete',
   path: string,
   data?: object,
 ) => ReturnType<APIRequestContext['post']>;
@@ -113,4 +113,39 @@ export async function demoIds(): Promise<DemoIds> {
     }
   }
   throw new Error('The demonstration has no scan with defects');
+}
+
+/** The API as the demonstration account, CSRF token included, on its shared session. */
+export async function demoApi(): Promise<{ context: APIRequestContext; send: Send }> {
+  const cookies = await demoCookies();
+  const context = await request.newContext({
+    baseURL: BASE_URL,
+    storageState: { cookies, origins: [] },
+  });
+  const token = cookies.find((cookie) => cookie.name === 'XSRF-TOKEN')?.value ?? '';
+  return {
+    context,
+    send: (method, path, data) =>
+      context[method](`/api/v1${path}`, { data, headers: { 'x-xsrf-token': token } }),
+  };
+}
+
+/**
+ * A new manual audit of the demonstration site, from its scan with defects,
+ * its sample made of these pages of the test site.
+ */
+export async function newDemoAudit(
+  pages: readonly { readonly path: string; readonly title: string }[],
+): Promise<{ org: string; audit: string; pages: string[] }> {
+  const ids = await demoIds();
+  const { send } = await demoApi();
+  const created = await send('post', `/orgs/${ids.org}/sites/${ids.site}/audits`, {
+    scanId: ids.scan,
+  });
+  const { id } = (await created.json()) as { id: string };
+  const sampled = await send('put', `/orgs/${ids.org}/audits/${id}/pages`, {
+    pages: pages.map(({ path, title }) => ({ url: `http://fixture-site${path}`, title })),
+  });
+  const audit = (await sampled.json()) as { pages: { id: string }[] };
+  return { org: ids.org, audit: id, pages: audit.pages.map((page) => page.id) };
 }

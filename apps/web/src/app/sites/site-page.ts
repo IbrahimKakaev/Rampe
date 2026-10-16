@@ -2,6 +2,8 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
+  auditSummarySchema,
+  type Conformity,
   SCAN_MAX_PAGES_LIMIT,
   scanScheduleSchema,
   scanSchema,
@@ -13,7 +15,12 @@ import * as z from 'zod/mini';
 
 import { Announcer } from '../core/announcer';
 import { API, errorMessage, parseWith } from '../core/api';
-import { formatDateTime, isScanActive, SCAN_STATUS_LABEL } from '../core/format';
+import {
+  formatAuditProgress,
+  formatDateTime,
+  isScanActive,
+  SCAN_STATUS_LABEL,
+} from '../core/format';
 import { FormState } from '../core/forms';
 import { titleFrom } from '../core/page-title';
 import { reloadWhile } from '../core/polling';
@@ -61,6 +68,10 @@ export class SitePage {
   protected readonly siteResource = httpResource(
     () => `${API}/orgs/${this.org()}/sites/${this.site()}`,
     { parse: parseWith(siteSchema) },
+  );
+  protected readonly audits = httpResource(
+    () => `${API}/orgs/${this.org()}/sites/${this.site()}/audits`,
+    { parse: parseWith(z.array(auditSummarySchema)) },
   );
   protected readonly scans = httpResource(
     () => `${API}/orgs/${this.org()}/sites/${this.site()}/scans`,
@@ -119,6 +130,14 @@ export class SitePage {
       wasActive = active;
       return active;
     }, this.scans);
+  }
+
+  protected auditPath(audit: string): string {
+    return webPath('audit', { org: this.org(), audit });
+  }
+
+  protected progress(conformity: Conformity): string {
+    return formatAuditProgress(conformity);
   }
 
   protected scanPath(scan: string): string {

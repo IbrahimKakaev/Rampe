@@ -1,0 +1,103 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="paths().sites">Sites</a></li>
+    <li><a [routerLink]="paths().audit">Audit manuel</a></li>
+    <li aria-current="page">Déclaration d’accessibilité</li>
+  </ol>
+</nav>
+
+<h1>Déclaration d’accessibilité</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (statement.hasValue()) { @let document = statement.value(); @if (document.draft) {
+<p class="draft-banner" data-statement-draft>
+  <strong>Brouillon.</strong> L’audit n’est pas complet : la déclaration ne donne ni état de
+  conformité ni taux, et ne peut pas être publiée en l’état.
+</p>
+}
+
+<h2>Informations à compléter</h2>
+<form class="form" novalidate (submit)="save($event)">
+  @if (form.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <p class="form-help">Aucun champ n’est obligatoire ; ce qui manque est signalé dans le texte.</p>
+  @for (field of fields; track field.name) {
+  <div class="field">
+    <label [for]="'declaration-' + field.name">{{ field.label }}</label>
+    @if (field.hint; as hint) {
+    <span [id]="'declaration-' + field.name + '-aide'" class="field-hint">{{ hint }}</span>
+    } @if (field.kind === 'textarea') {
+    <textarea
+      [id]="'declaration-' + field.name"
+      [name]="field.name"
+      rows="3"
+      [value]="value(field.name)"
+      [attr.aria-invalid]="form.errors()[field.name] ? true : null"
+      [attr.aria-describedby]="
+              (field.hint ? 'declaration-' + field.name + '-aide ' : '') +
+                (form.errors()[field.name] ? 'declaration-' + field.name + '-erreur' : '') || null
+            "
+    ></textarea>
+    } @else {
+    <input
+      [id]="'declaration-' + field.name"
+      [name]="field.name"
+      [type]="field.kind"
+      [value]="value(field.name)"
+      [attr.aria-invalid]="form.errors()[field.name] ? true : null"
+      [attr.aria-describedby]="
+              (field.hint ? 'declaration-' + field.name + '-aide ' : '') +
+                (form.errors()[field.name] ? 'declaration-' + field.name + '-erreur' : '') || null
+            "
+    />
+    } @if (form.errors()[field.name]; as message) {
+    <p [id]="'declaration-' + field.name + '-erreur'" class="field-error">{{ message }}</p>
+    }
+  </div>
+  }
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="form.pending() ? true : null">
+      Enregistrer et mettre à jour la déclaration
+    </button>
+    <span role="status"> @if (saved()) { Déclaration mise à jour. } </span>
+  </div>
+</form>
+
+<h2>Texte de la déclaration</h2>
+<article class="statement" aria-labelledby="titre-declaration">
+  <h3 id="titre-declaration">{{ document.title }}</h3>
+  @for (block of document.intro; track $index) { @if (block.type === 'paragraph') {
+  <p>{{ block.text }}</p>
+  } @else {
+  <ul>
+    @for (item of block.items; track $index) {
+    <li>
+      @if (item.href; as href) {
+      <a [href]="href">{{ item.text }}</a>
+      } @else { {{ item.text }} }
+    </li>
+    }
+  </ul>
+  } } @for (section of document.sections; track section.heading) { @if (section.level === 2) {
+  <h4>{{ section.heading }}</h4>
+  } @else {
+  <h5>{{ section.heading }}</h5>
+  } @for (block of section.blocks; track $index) { @if (block.type === 'paragraph') {
+  <p>{{ block.text }}</p>
+  } @else {
+  <ul>
+    @for (item of block.items; track $index) {
+    <li>
+      @if (item.href; as href) {
+      <a [href]="href">{{ item.text }}</a>
+      } @else { {{ item.text }} }
+    </li>
+    }
+  </ul>
+  } } }
+</article>
+} @else {
+<p role="status">Chargement…</p>
+}

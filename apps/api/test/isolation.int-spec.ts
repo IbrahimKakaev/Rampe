@@ -4,7 +4,7 @@ import { analyzedPage, reportScan, verifiedSite } from './support/fixtures.js';
 import { type Client, type Harness, signedInAccount, startHarness } from './support/harness.js';
 
 interface Operation {
-  readonly method: 'get' | 'post' | 'patch' | 'delete';
+  readonly method: 'get' | 'post' | 'put' | 'patch' | 'delete';
   readonly path: string;
 }
 
@@ -17,6 +17,28 @@ const BODIES: Readonly<Record<string, object>> = {
   'post /api/v1/orgs/{org}/invitations': { email: 'nouveau@example.fr', role: 'MEMBER' },
   'patch /api/v1/orgs/{org}/sites/{site}': { maxPages: 10 },
   'post /api/v1/orgs/{org}/sites/{site}/verification/check': { method: 'DNS' },
+  'post /api/v1/orgs/{org}/sites/{site}/audits': { scanId: '' },
+  'put /api/v1/orgs/{org}/audits/{audit}/pages': {
+    pages: [{ url: 'https://www.alice.example/', title: 'Accueil' }],
+  },
+  'put /api/v1/orgs/{org}/audits/{audit}/pages/{page}/criteria/{criterion}': {
+    status: 'C',
+    note: null,
+  },
+  'put /api/v1/orgs/{org}/audits/{audit}/statement': {
+    entityName: 'Bob',
+    serviceName: 'Bob',
+    auditedBy: '',
+    derogations: '',
+    exemptions: '',
+    technologies: '',
+    testEnvironment: '',
+    tools: '',
+    contactFormUrl: '',
+    contactDetails: '',
+    multiYearPlanUrl: '',
+    actionPlanUrl: '',
+  },
 };
 
 /**
@@ -57,6 +79,21 @@ describe('isolation between organisations', () => {
       await a.client.get(`/orgs/${a.organizationId}/scans/${alice['scan']}/findings`).expect(200)
     ).body as { items: { id: string }[] };
     alice['finding'] = findings.items[0]?.id ?? '';
+    const audit = (
+      await a.client
+        .post(`/orgs/${a.organizationId}/sites/${alice['site']}/audits`, { scanId: alice['scan'] })
+        .expect(201)
+    ).body as { id: string };
+    alice['audit'] = audit.id;
+    const sampled = (
+      await a.client
+        .put(`/orgs/${a.organizationId}/audits/${audit.id}/pages`, {
+          pages: [{ url: 'https://www.alice.example/', title: 'Accueil' }],
+        })
+        .expect(200)
+    ).body as { pages: { id: string }[] };
+    alice['page'] = sampled.pages[0]?.id ?? '';
+    alice['criterion'] = '1.1';
     alice['invitation'] = (
       (
         await a.client
@@ -74,7 +111,7 @@ describe('isolation between organisations', () => {
     operations = Object.entries(document.paths).flatMap(([path, methods]) =>
       Object.keys(methods)
         .filter((method): method is Operation['method'] =>
-          ['get', 'post', 'patch', 'delete'].includes(method),
+          ['get', 'post', 'put', 'patch', 'delete'].includes(method),
         )
         .map((method) => ({ method, path })),
     );
@@ -98,13 +135,15 @@ describe('isolation between organisations', () => {
       return value;
     });
 
-  const call = (operation: Operation, url: string) =>
-    operation.method === 'get'
+  const call = (operation: Operation, url: string) => {
+    const body = BODIES[`${operation.method} ${operation.path}`];
+    // A request that names a scan of Alice in its body names it from Bob's side.
+    const filled =
+      body !== undefined && 'scanId' in body ? { ...body, scanId: alice['scan'] } : body;
+    return operation.method === 'get'
       ? bob.get(url.replace('/api/v1', ''))
-      : bob[operation.method](
-          url.replace('/api/v1', ''),
-          BODIES[`${operation.method} ${operation.path}`],
-        );
+      : bob[operation.method](url.replace('/api/v1', ''), filled);
+  };
 
   it('reads every route from the OpenAPI description', () => {
     expect(
@@ -164,5 +203,11 @@ describe('isolation between organisations', () => {
     expect(
       await harness.prisma.invitation.count({ where: { id: alice['invitation'] ?? '' } }),
     ).toBe(1);
+    expect(
+      await harness.prisma.auditResult.count({
+        where: { auditPageId: alice['page'] ?? '', origin: 'AUDITOR' },
+      }),
+    ).toBe(0);
+    expect(await harness.prisma.statement.count()).toBe(0);
   });
 });

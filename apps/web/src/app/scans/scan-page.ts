@@ -1,7 +1,8 @@
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import { Component, computed, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
+  auditSchema,
   findingsSummarySchema,
   scanComparisonSchema,
   scanPageSchema,
@@ -9,6 +10,7 @@ import {
   siteSchema,
   webPath,
 } from '@rampe/shared';
+import { firstValueFrom } from 'rxjs';
 import * as z from 'zod/mini';
 
 import { Announcer } from '../core/announcer';
@@ -21,6 +23,7 @@ import {
   SCAN_STATUS_LABEL,
   scanReasonLabel,
 } from '../core/format';
+import { FormState } from '../core/forms';
 import { reloadWhile } from '../core/polling';
 import { titleFrom } from '../core/page-title';
 import { PreAuditNotice } from '../ui/pre-audit-notice';
@@ -40,6 +43,7 @@ const GROUPINGS: readonly { readonly value: Grouping; readonly label: string }[]
 })
 export class ScanPage {
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
   private readonly announcer = inject(Announcer);
 
   /** Route parameters. */
@@ -149,6 +153,7 @@ export class ScanPage {
       : webPath('sites', { org: this.org() }),
   }));
 
+  protected readonly audit = new FormState(z.strictObject({}), {});
   protected readonly groupings = GROUPINGS;
   protected readonly statusLabel = SCAN_STATUS_LABEL;
   protected readonly pageErrorLabel = PAGE_ERROR_LABEL;
@@ -179,6 +184,24 @@ export class ScanPage {
         },
       },
     );
+  }
+
+  protected async startAudit(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    const scan = this.scanResource.hasValue() ? this.scanResource.value() : null;
+    if (scan === null) {
+      return;
+    }
+    await this.audit.submit(async () => {
+      const created = auditSchema.parse(
+        await firstValueFrom(
+          this.http.post(`${API}/orgs/${this.org()}/sites/${scan.siteId}/audits`, {
+            scanId: scan.id,
+          }),
+        ),
+      );
+      await this.router.navigateByUrl(webPath('audit', { org: this.org(), audit: created.id }));
+    });
   }
 
   protected reason(reason: string | null): string | null {

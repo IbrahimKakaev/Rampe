@@ -24,6 +24,8 @@ const sources = sourceFiles(appDirectory).map((path) => ({
   text: readFileSync(path, 'utf8'),
 }));
 
+const preAuditViews = sources.filter(({ path }) => !path.startsWith('audits/'));
+
 describe('interface texts', () => {
   it('reads every component of the application', () => {
     // Guards against a check that passes because it no longer finds the files.
@@ -48,11 +50,24 @@ describe('interface texts', () => {
     expect(copied).toEqual([]);
   });
 
-  it('never calls anything « conforme »: the views show an automated pre-audit', () => {
-    const claims = sources.flatMap(({ path, text }) =>
+  it('never calls anything « conforme » in the pre-audit views', () => {
+    // The manual audit views (audits/) show the statuses the auditor chose, the
+    // statement included: there, « conforme » rests on a human evaluation.
+    const claims = preAuditViews.flatMap(({ path, text }) =>
       [...text.matchAll(/\b(non[\s-])?conformes?\b/gi)].map((match) => `${path}: ${match[0]}`),
     );
 
     expect(claims).toEqual([]);
+  });
+
+  it('never shows an automated score in the manual audit views, where « conforme » may appear', () => {
+    const auditViews = sources.filter(({ path }) => path.startsWith('audits/'));
+
+    expect(auditViews.length).toBeGreaterThanOrEqual(4);
+    expect(
+      auditViews.filter(({ text }) =>
+        /rampe-score|rampe-pre-audit-notice|from '\.\.\/ui\/score'/.test(text),
+      ),
+    ).toEqual([]);
   });
 });
