@@ -431,6 +431,10 @@ Critères d'acceptation :
 - Une page hors du scan peut entrer dans l'échantillon, sans proposition automatique.
 - Le test d'isolation lit désormais aussi les routes PUT.
 
+### Après le J6
+
+- [x] Gestion des membres et des invitations dans l'interface (page « Membres »), sur l'API du J3. Parcours testé de bout en bout : invitation reçue dans Mailpit, acceptation, changement de rôle, retrait.
+
 ## 8. Risques
 
 | #   | Risque                                                                                                             | Parade                                                                                                                                |

@@ -366,3 +366,15 @@ Aucune règle active n'a aujourd'hui de correspondance incertaine : les revues d
 **Le test d'isolation couvre aussi les routes PUT**, qu'il ignorait jusqu'ici, et les ressources d'un audit (audit, page de l'échantillon, critère).
 
 **`GET /referentials/rgaa-4.1.2/criteria`**, prévu au plan, est livré : les 106 critères et leur classement, sans session.
+
+## Après le MVP, 16 octobre 2026
+
+### Membres et invitations dans l'interface
+
+**Une page « Membres » par organisation**, sur l'API livrée au J3. Tout membre y voit les personnes de l'organisation et les invitations en attente. Les propriétaires y invitent par e-mail, changent les rôles et retirent des membres. Chaque commande porte le nom de la personne qu'elle concerne (« Retirer Camille de l'organisation »), pour qu'une liste de boutons reste compréhensible au lecteur d'écran. L'API garde toujours un propriétaire et le dit ; un propriétaire qui se retire lui-même est renvoyé vers ses autres organisations.
+
+### Test instable observé
+
+**Le test du J1 « charge au plus deux pages à la fois, et utilise ce parallélisme » a échoué une fois**, dans une exécution complète depuis des volumes vides, puis il est passé à chaque nouvel essai, seul ou dans le même ordre. Il ne voit deux pages ouvertes en même temps que pendant les trente secondes où `/lent.html` fait attendre le robot. Si l'ordre de l'exploration fait de cette page la dernière visitée, il n'y a rien à recouvrir. Le test n'est ni affaibli ni désactivé ; en cas d'échec, il affiche désormais la chronologie des requêtes, qui dira s'il faut revoir le site de test.
+
+**Les tests de bout en bout se relancent sur une pile déjà utilisée.** Le test de la démonstration lisait le dernier scan du site, que les exécutions précédentes remplacent ; il lit désormais le plus ancien, celui que `docker compose up` a lancé.

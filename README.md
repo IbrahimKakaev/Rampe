@@ -4,7 +4,7 @@ Rampe est un outil de pré-audit d'accessibilité web pour les PME françaises. 
 
 Un test automatique ne prouve jamais la conformité au RGAA : Rampe parle de « pré-audit automatique » et indique toujours ce qui reste à vérifier à la main.
 
-**État du projet :** jalon J6, dernier jalon du MVP. Le tableau de bord permet de créer un compte, d'ajouter un site et d'en prouver la propriété, de lancer un scan et d'en lire les résultats, groupés par critère RGAA, par gravité ou par page, puis d'en télécharger le rapport PDF. Un site peut être rescanné chaque jour ou chaque semaine ; les membres reçoivent un e-mail quand de nouveaux défauts apparaissent. Un audit manuel évalue les 106 critères du RGAA sur un échantillon de pages, calcule le taux de conformité selon la méthode officielle et produit le brouillon de la déclaration d'accessibilité. Voir [PLAN.md](PLAN.md).
+**État du projet :** jalon J6, dernier jalon du MVP. Le tableau de bord permet de créer un compte, d'ajouter un site et d'en prouver la propriété, de lancer un scan et d'en lire les résultats, groupés par critère RGAA, par gravité ou par page, puis d'en télécharger le rapport PDF. Un site peut être rescanné chaque jour ou chaque semaine ; les membres reçoivent un e-mail quand de nouveaux défauts apparaissent. Un audit manuel évalue les 106 critères du RGAA sur un échantillon de pages, calcule le taux de conformité selon la méthode officielle et produit le brouillon de la déclaration d'accessibilité. Les propriétaires invitent leurs collègues et gèrent les rôles depuis la page « Membres ». Voir [PLAN.md](PLAN.md).
 
 ## Lancer l'application
 
