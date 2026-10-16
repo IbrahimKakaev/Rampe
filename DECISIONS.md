@@ -293,3 +293,43 @@ Mon premier diagnostic accusait la restriction AppArmor d'Ubuntu 24.04 (`kernel.
 **Le parcours complet est joué deux fois : à la souris, puis au clavier seul.** Au clavier, chaque cible est atteinte par la touche Tab, et chaque arrêt du focus doit montrer un contour visible d'au moins 2 px. À la souris, chaque étape passe aussi par axe-core, ce qui couvre les états qu'une visite page par page n'atteint pas : formulaire envoyé, vérification échouée, scan en cours.
 
 **Les tests ouvrent une seule session du compte de démonstration**, partagée par cookie. La connexion est limitée à 10 essais par minute et par adresse IP : les tests ne doivent pas déclencher la protection qu'ils exercent.
+
+## Jalon J5, 16 octobre 2026
+
+### Rapport PDF
+
+**L'API écrit le HTML du rapport, le worker l'imprime en PDF balisé dans le navigateur isolé** (`page.pdf({ tagged: true, outline: true })`). Le HTML vient d'une fonction pure (`apps/api/src/reports/report-html.ts`), testée seule. Le rapport cite le site scanné (adresses, titres, extraits de code) : l'API échappe tout ce qu'elle cite, et le worker l'imprime JavaScript coupé, contexte hors ligne et toute requête refusée. Le PDF n'est jamais conservé ; le job qui le transporte est supprimé dès qu'il est rendu.
+
+**Le PDF est balisé : arbre de structure, titres, tableaux à en-têtes, listes, langue `fr`.** Le test de bout en bout le lit avec pdfjs (Mozilla, Apache-2.0, en dépendance des tests seulement) comme le ferait un lecteur d'écran : texte, rôles de la structure, marquage et langue.
+
+**Les occurrences d'une règle sont listées 25 au plus par critère**, les suivantes comptées. L'explication de la correction est donnée une fois par règle. La limite de pages n'apparaît pas dans le périmètre : elle n'est pas enregistrée avec le scan, et celle du site a pu changer depuis.
+
+### Planification
+
+**Une tâche par minute démarre les scans dus, d'après `sites.next_scan_at`.** L'état est en base, donc un redémarrage ne perd rien. Chaque site dû est « réclamé » par une mise à jour conditionnelle : plusieurs instances de l'API ne lancent jamais deux fois le même scan. Le prochain passage se compte à partir du lancement, pas de l'échéance manquée : un site oublié pendant une panne n'est pas scanné plusieurs fois de suite. Un site dont la preuve de propriété a disparu saute son tour et redevient « non vérifié ».
+
+**Les tâches périodiques sont des planificateurs BullMQ (`upsertJobScheduler`) d'une file `maintenance`** : le démarrage des scans dus chaque minute, la purge chaque nuit à 3 h, heure de Paris. Un planificateur n'existe qu'une fois dans Valkey, quel que soit le nombre d'instances de l'API.
+
+**Une horloge injectable (`Clock`).** La planification et la purge lisent l'heure par elle ; les tests d'intégration avancent l'horloge d'un jour, d'une semaine ou d'un an au lieu d'attendre.
+
+**La planification se règle par `PATCH /orgs/:org/sites/:site`, pas par un `PUT …/schedule` dédié** comme le prévoyait le plan : la route existait déjà depuis le J3 pour la limite de pages, et un seul formulaire règle les deux.
+
+### Alertes
+
+**Une régression, c'est au moins un défaut nouveau sur une page analysée dans les deux scans.** Le premier scan d'un site, ou un scan sans défaut nouveau, n'envoie rien. Les défauts corrigés sont mentionnés dans l'alerte, jamais seuls.
+
+**L'alerte part au plus une fois par scan**, vers chaque membre à l'adresse confirmée, un e-mail par personne : les adresses ne sont pas montrées aux autres. Une ligne de `notifications`, unique par scan, est écrite avant l'envoi. Si le serveur de messagerie tombe à ce moment, l'alerte est perdue plutôt qu'envoyée deux fois, et le journal le dit. L'enregistrement du scan ne dépend jamais de l'envoi.
+
+### Conservation et suppression
+
+**La purge supprime les scans plus anciens que la durée de conservation de leur organisation**, comptée en mois civils, avec leurs pages, défauts et alertes. Un scan en cours n'est jamais supprimé.
+
+**Les jobs ne gardent plus de données après usage.** Un scan terminé et un message du worker enregistré sont retirés de Valkey aussitôt, puisque ces messages contiennent des extraits de pages. Un job en échec est gardé une semaine, pour l'exploitant. L'enregistrement des messages est idempotent : un message renvoyé après son retrait ne fait aucun dégât.
+
+**Supprimer une organisation retire aussi ses jobs de Valkey** : scans en attente, messages du worker non traités ou en échec. Un scan en cours d'exécution ne peut pas être interrompu ; ses messages ne trouvent plus de scan et sont ignorés. Un test vérifie, table par table et file par file, qu'il ne reste rien.
+
+### Interface
+
+**Les libellés français des codes du moteur** (motifs d'arrêt, erreurs de page, gravités) vivent dans `@rampe/shared` : l'interface, le rapport et les e-mails disent la même chose.
+
+**Une page « Paramètres de l'organisation »** : nom, durée de conservation, suppression confirmée par le mot de passe. Les membres qui ne sont pas propriétaires la voient sans les formulaires.

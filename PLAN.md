@@ -1,6 +1,6 @@
 # Rampe — plan de réalisation du MVP
 
-**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J3 validés et fusionnés dans `main`. Jalon J4 réalisé, en attente de validation.
+**État :** plan et décisions D1 à D10 validés le 14 octobre 2026. Jalons J0 à J4 validés et fusionnés dans `main`. Jalon J5 réalisé, en attente de validation.
 **Référence :** [docs/CAHIER-DES-CHARGES.md](docs/CAHIER-DES-CHARGES.md), texte intégral de ta demande.
 
 ## 1. Ce que tu dois valider
@@ -397,12 +397,20 @@ Export PDF, planification, comparaison avec le scan précédent, e-mail d'alerte
 
 Critères d'acceptation :
 
-- [ ] Le PDF contient la page de garde, la synthèse, les défauts par critère, les critères à vérifier manuellement, la date et le périmètre. Il est balisé et ne contient pas le mot « conforme » comme conclusion.
-- [ ] Un site planifié est rescanné sans intervention, quotidiennement ou chaque semaine. Testé en avançant l'horloge.
-- [ ] La comparaison liste les nouveaux défauts et les défauts corrigés, et ignore les pages absentes d'un des deux scans.
-- [ ] Une régression envoie un seul e-mail aux membres. Un scan sans régression n'envoie rien.
-- [ ] La purge supprime les scans plus anciens que la durée de conservation, et seulement eux.
-- [ ] La suppression d'une organisation ne laisse aucune ligne en base ni aucun job en file.
+- [x] Le PDF contient la page de garde, la synthèse, les défauts par critère, les critères à vérifier manuellement, la date et le périmètre. Il est balisé et ne contient pas le mot « conforme » comme conclusion. _Lu avec pdfjs dans le test de bout en bout : arbre de structure (titres, tableaux à en-têtes), marquage, langue `fr`. Le mot « conforme » n'y apparaît nulle part._
+- [x] Un site planifié est rescanné sans intervention, quotidiennement ou chaque semaine. Testé en avançant l'horloge.
+- [x] La comparaison liste les nouveaux défauts et les défauts corrigés, et ignore les pages absentes d'un des deux scans. _Dans l'interface, avec le nombre de défauts non comparés._
+- [x] Une régression envoie un seul e-mail aux membres. Un scan sans régression n'envoie rien. _Un e-mail par membre, une seule fois par scan, même si la file rejoue le message de fin._
+- [x] La purge supprime les scans plus anciens que la durée de conservation, et seulement eux.
+- [x] La suppression d'une organisation ne laisse aucune ligne en base ni aucun job en file.
+
+Écarts au plan constatés pendant le jalon :
+
+- La planification se règle par `PATCH /orgs/:org/sites/:site`, qui existait déjà pour la limite de pages, au lieu d'un `PUT …/schedule` dédié.
+- Les scans planifiés sont lancés par une tâche par minute qui lit `sites.next_scan_at` en base, plutôt que par un planificateur Valkey par site : l'état survit à une perte de Valkey, et la suppression d'une organisation n'a pas de planificateur à retirer.
+- Une page « Paramètres de l'organisation » est ajoutée : durée de conservation et suppression complète sont des exigences RGPD du cahier des charges, il fallait pouvoir les régler.
+- Les jobs ne gardent plus de données de client après usage ; ceux du J3 en gardaient jusqu'à mille par file.
+- `pdfjs-dist` (Apache-2.0) entre dans les dépendances des tests de bout en bout, pour lire le PDF comme un lecteur d'écran.
 
 ### J6 — Audit manuel et déclaration
 

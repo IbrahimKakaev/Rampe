@@ -62,9 +62,11 @@ apps/
                     prisma/schema.prisma       modèle de données ; migrations dans prisma/migrations
                     src/security/              session, CSRF, gardes d'organisation, limitation de débit
                     src/scans/scan-recorder.ts enregistre ce que publie le worker
+                    src/scans/maintenance.ts   tâches périodiques : scans planifiés, purge
+                    src/reports/               HTML du rapport ; le worker l'imprime en PDF
                     src/seed-demo.ts           démonstration locale, refusé en production
   worker/         moteur de scan et ses trois points d'entrée :
-                    dist/main.js                 consommateur des files BullMQ
+                    dist/main.js                 consommateur des files BullMQ (scans, vérifications, rapports PDF)
                     dist/scan-cli.js             commande de scan (jusqu'à l'API, J3)
                     dist/egress/main.js          proxy de sortie, garde SSRF (conteneur egress-proxy)
                     dist/browser-server/main.js  Chromium isolé (conteneur browser)
@@ -110,6 +112,8 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 - Entrées et réponses se décrivent avec les schémas de `@rampe/shared/api` : `@Body({ schema })`, `@Param('x', { schema })`, `@ApiOkResponse({ standardSchema })`.
 - Les messages d'erreur destinés à l'utilisateur sont en français. Ils ne révèlent jamais si une ressource existe ailleurs.
 - L'API ne se connecte jamais à un site client : elle passe par le worker et le proxy de sortie.
+- L'heure se lit par `Clock`, jamais par `new Date()` dans ce qui dépend du temps (planification, conservation) : les tests l'avancent.
+- Un job ne garde pas de données de client après usage (`removeOnComplete: true`) ; la suppression d'une organisation retire ses jobs avec `Queues.forgetScans`.
 - Un changement du modèle de données passe par une migration : `pnpm --filter @rampe/api run migrate:create`, avec une base PostgreSQL jetable dans `DATABASE_URL`.
 
 **Tests.**
@@ -126,6 +130,7 @@ Réseaux Docker : `front` (interface et API), `data` (PostgreSQL), `queue` (Valk
 - Les chemins des pages sont dans `WEB_ROUTES` (`packages/shared/src/web-routes.ts`) ; on construit un lien avec `webPath('site', { org, site })`. Une page nouvelle s'y ajoute d'abord, puis au routeur et à `e2e/tests/routes.spec.ts`, qui ne compile pas sans elle.
 - Aucun `styleUrl` ni `styles` dans un composant, aucun attribut `style` dans un gabarit : la politique de sécurité du contenu les refuse. La CSS va dans `src/styles/`.
 - Un score ne s'affiche qu'avec `<rampe-score>`, et la page qui l'affiche contient `<rampe-pre-audit-notice>`.
+- Les libellés des codes du moteur (gravité, motif d'arrêt, erreur de page) viennent de `@rampe/shared` (`labels.ts`), partagés avec le rapport PDF et les e-mails.
 - Aucun texte de correction dans un composant : ils viennent de l'API (`correction`, `title`), affichés avec `<rampe-content-text>`.
 - Les lectures passent par `httpResource` avec `parse: parseWith(schéma)` ; les formulaires par `FormState` (`core/forms.ts`), avec les schémas de `@rampe/shared`.
 - Toute page commence par un `h1` présent dès le premier rendu : il reçoit le focus après la navigation.
