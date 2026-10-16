@@ -14,6 +14,7 @@ export const WEB_ROUTES = {
   acceptInvitation: 'invitations',
   robot: 'robot',
   dashboard: 'tableau-de-bord',
+  organization: 'organisations/:org/parametres',
   sites: 'organisations/:org/sites',
   newSite: 'organisations/:org/sites/nouveau',
   site: 'organisations/:org/sites/:site',

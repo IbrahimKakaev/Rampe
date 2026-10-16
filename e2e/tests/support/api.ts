@@ -83,3 +83,34 @@ export function demoCookies(): Promise<Cookies> {
   })();
   return demoSession;
 }
+
+export interface DemoIds {
+  readonly org: string;
+  readonly site: string;
+  readonly scan: string;
+  readonly finding: string;
+}
+
+/** Identifiers of the demonstration data: its site, and a scan with defects. */
+export async function demoIds(): Promise<DemoIds> {
+  const context = await request.newContext({
+    baseURL: BASE_URL,
+    storageState: { cookies: await demoCookies(), origins: [] },
+  });
+  const get = async <T>(path: string): Promise<T> =>
+    (await (await context.get(`/api/v1${path}`)).json()) as T;
+  const [organization] = await get<{ id: string }[]>('/orgs');
+  const org = organization?.id ?? '';
+  const sites = await get<{ id: string; host: string }[]>(`/orgs/${org}/sites`);
+  const site = sites.find(({ host }) => host === 'fixture-site')?.id ?? '';
+  for (const { id } of await get<{ id: string }[]>(`/orgs/${org}/sites/${site}/scans`)) {
+    const findings = await get<{ items: { id: string }[] }>(
+      `/orgs/${org}/scans/${id}/findings?limit=1`,
+    );
+    const [finding] = findings.items;
+    if (finding !== undefined) {
+      return { org, site, scan: id, finding: finding.id };
+    }
+  }
+  throw new Error('The demonstration has no scan with defects');
+}

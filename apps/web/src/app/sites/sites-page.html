@@ -12,6 +12,7 @@
 
 <div class="actions">
   <a class="button" [routerLink]="newSitePath()">Ajouter un site</a>
+  <a [routerLink]="organizationPath()">Paramètres de l’organisation</a>
 </div>
 
 @if (loadError(); as message) {

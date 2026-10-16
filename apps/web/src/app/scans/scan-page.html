@@ -77,7 +77,43 @@ visited = pages.value();
   </div>
   }
 </dl>
-} @if (finished()) {
+<div class="actions">
+  <a class="button button--secondary" [href]="reportPath()" download>
+    Télécharger le rapport de pré-audit (PDF)
+  </a>
+  <span class="muted"
+    >Page de garde, synthèse, défauts par critère, critères à vérifier à la main.</span
+  >
+</div>
+} @if (finished() && comparison.hasValue()) { @let diff = comparison.value();
+<h2>Évolution depuis le scan précédent</h2>
+@if (diff.previousScanId === null) {
+<p>Premier scan terminé de ce site : il n’y a rien à comparer.</p>
+} @else {
+<p>{{ comparisonSummary() }}</p>
+@if (diff.added.length > 0) {
+<h3>Nouveaux défauts</h3>
+<ul>
+  @for (finding of diff.added.slice(0, listLimit); track $index) {
+  <li>
+    {{ finding.title ?? finding.ruleId }}, page <code>{{ finding.pagePath }}</code>, élément
+    <code>{{ finding.selector }}</code>
+  </li>
+  }
+</ul>
+} @if (diff.fixed.length > 0) {
+<h3>Défauts corrigés</h3>
+<ul>
+  @for (finding of diff.fixed.slice(0, listLimit); track $index) {
+  <li>
+    {{ finding.title ?? finding.ruleId }}, page <code>{{ finding.pagePath }}</code>, élément
+    <code>{{ finding.selector }}</code>
+  </li>
+  }
+</ul>
+} @if (diff.added.length > listLimit || diff.fixed.length > listLimit) {
+<p class="muted">Seuls les {{ listLimit }} premiers défauts de chaque liste sont affichés.</p>
+} } } @if (finished()) {
 <h2>Défauts détectés</h2>
 @if (summary.hasValue()) { @if (findingCount() === 0) {
 <p>

@@ -26,6 +26,8 @@ export const siteSchema = z.strictObject({
   verifiedAt: z.nullable(isoDateSchema),
   maxPages: z.number(),
   schedule: scanScheduleSchema,
+  /** When the next scheduled scan is due; null without a schedule. */
+  nextScanAt: z.nullable(isoDateSchema),
   createdAt: isoDateSchema,
   lastScan: z.nullable(
     z.strictObject({

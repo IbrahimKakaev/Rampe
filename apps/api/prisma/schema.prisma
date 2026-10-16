@@ -72,9 +72,10 @@ model Organization {
   memberships Membership[]
   invitations Invitation[]
   sites       Site[]
-  scans       Scan[]
-  pages       ScanPage[]
-  findings    Finding[]
+  scans         Scan[]
+  pages         ScanPage[]
+  findings      Finding[]
+  notifications Notification[]
 
   @@map("organizations")
 }
@@ -138,6 +139,8 @@ model Site {
   verifiedAt         DateTime?           @map("verified_at")
   maxPages           Int                 @default(25) @map("max_pages")
   schedule           ScanSchedule        @default(NONE)
+  /// When the next scheduled scan is due; null when the site has no schedule.
+  nextScanAt         DateTime?           @map("next_scan_at")
   createdAt          DateTime            @default(now()) @map("created_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -145,6 +148,7 @@ model Site {
 
   @@unique([organizationId, origin])
   @@index([organizationId])
+  @@index([nextScanAt])
   @@map("sites")
 }
 
@@ -187,10 +191,11 @@ model Scan {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  pages        ScanPage[]
-  findings     Finding[]
+  pages         ScanPage[]
+  findings      Finding[]
+  notifications Notification[]
 
-  @@index([organizationId])
+  @@index([organizationId, createdAt])
   @@index([siteId, createdAt])
   @@map("scans")
 }
@@ -253,4 +258,27 @@ model Finding {
   @@index([scanId, ruleId])
   @@index([pageId])
   @@map("findings")
+}
+
+enum NotificationType {
+  /// New defects since the previous scan.
+  REGRESSION
+}
+
+/// An alert sent about a scan. Unique per scan and type: an alert is never sent twice.
+model Notification {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  scanId         String           @map("scan_id") @db.Uuid
+  type           NotificationType
+  /// How many members it was sent to.
+  recipients     Int
+  sentAt         DateTime         @default(now()) @map("sent_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scan         Scan         @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, type])
+  @@index([organizationId])
+  @@map("notifications")
 }

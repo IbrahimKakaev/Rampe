@@ -15,6 +15,7 @@ import {
 import { AppModule } from '../../src/app.module.js';
 import { setupApp } from '../../src/app.setup.js';
 import { loadConfig } from '../../src/config/app-config.js';
+import { Clock } from '../../src/infra/clock.js';
 import { Mailer, type MailMessage } from '../../src/infra/mailer.js';
 import { Prisma } from '../../src/infra/prisma.js';
 import { TxtResolver } from '../../src/sites/ownership.js';
@@ -41,6 +42,23 @@ export class CapturingMailer extends Mailer {
   }
 }
 
+/** A clock the test moves forward, instead of waiting for a day or a year to pass. */
+export class FakeClock extends Clock {
+  private current = new Date();
+
+  now(): Date {
+    return new Date(this.current.getTime());
+  }
+
+  set(date: Date): void {
+    this.current = new Date(date.getTime());
+  }
+
+  advance(ms: number): void {
+    this.current = new Date(this.current.getTime() + ms);
+  }
+}
+
 /** A DNS whose TXT records the test decides. */
 export class FakeTxtResolver extends TxtResolver {
   readonly records = new Map<string, string[]>();
@@ -55,6 +73,7 @@ export interface Harness {
   readonly prisma: Prisma;
   readonly mailer: CapturingMailer;
   readonly dns: FakeTxtResolver;
+  readonly clock: FakeClock;
   readonly valkeyUrl: string;
   /** A browser: its own cookies and CSRF token. */
   client(): Promise<Client>;
@@ -90,11 +109,14 @@ export async function startHarness(): Promise<Harness> {
   });
   const mailer = new CapturingMailer();
   const dns = new FakeTxtResolver();
+  const clock = new FakeClock();
   const moduleRef = await Test.createTestingModule({ imports: [AppModule.register(config)] })
     .overrideProvider(Mailer)
     .useValue(mailer)
     .overrideProvider(TxtResolver)
     .useValue(dns)
+    .overrideProvider(Clock)
+    .useValue(clock)
     .compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
   setupApp(app, { secureCookies: false });
@@ -106,6 +128,7 @@ export async function startHarness(): Promise<Harness> {
     prisma: app.get(Prisma),
     mailer,
     dns,
+    clock,
     valkeyUrl: valkey.url,
     async client() {
       const agent = request.agent(app.getHttpServer());

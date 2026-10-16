@@ -379,7 +379,7 @@ describe('sites and scans', () => {
         .body as Record<string, unknown>;
       expect(diff).toEqual({
         previousScanId: first,
-        added: [{ ruleId: 'link-name', pagePath: '/', selector: 'a' }],
+        added: [{ ruleId: 'link-name', title: 'Lien sans intitulé', pagePath: '/', selector: 'a' }],
         fixed: [],
         unchanged: 1,
         notCompared: 1,

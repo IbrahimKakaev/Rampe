@@ -114,15 +114,20 @@ export const findingsSummarySchema = z.strictObject({
   withoutCriterion: z.number(),
 });
 
+const comparedFindingSchema = z.strictObject({
+  ruleId: z.string(),
+  /** Short French description of the defect, from the corrections content. */
+  title: z.nullable(z.string()),
+  pagePath: z.string(),
+  selector: z.string(),
+});
+
 export const scanComparisonSchema = z.strictObject({
   previousScanId: z.nullable(idSchema),
-  added: z.array(
-    z.strictObject({ ruleId: z.string(), pagePath: z.string(), selector: z.string() }),
-  ),
-  fixed: z.array(
-    z.strictObject({ ruleId: z.string(), pagePath: z.string(), selector: z.string() }),
-  ),
+  added: z.array(comparedFindingSchema),
+  fixed: z.array(comparedFindingSchema),
   unchanged: z.number(),
   /** Defects on pages that were not analysed in both scans. */
   notCompared: z.number(),
 });
+export type ScanComparison = z.infer<typeof scanComparisonSchema>;

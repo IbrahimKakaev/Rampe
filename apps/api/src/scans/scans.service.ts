@@ -8,6 +8,7 @@ import {
 } from '@rampe/rules';
 import {
   type Finding,
+  IMPACT_LABEL,
   type Impact,
   type PageError,
   SCAN_DEFAULTS,
@@ -21,12 +22,6 @@ import { Queues } from '../infra/queues.js';
 import { SitesService } from '../sites/sites.service.js';
 
 const IMPACT_ORDER: readonly Impact[] = ['critical', 'serious', 'moderate', 'minor'];
-const IMPACT_LABEL: Readonly<Record<Impact, string>> = {
-  critical: 'Critique',
-  serious: 'Grave',
-  moderate: 'Modéré',
-  minor: 'Mineur',
-};
 
 export interface FindingFilters {
   readonly ruleId?: string | undefined;
@@ -49,7 +44,11 @@ export class ScansService {
    * Starts a scan of a verified site. The ownership proof is checked again
    * first; a site whose proof has disappeared is unverified and not scanned.
    */
-  async start(organizationId: string, siteId: string): Promise<Scan> {
+  async start(
+    organizationId: string,
+    siteId: string,
+    trigger: 'MANUAL' | 'SCHEDULED' = 'MANUAL',
+  ): Promise<Scan> {
     const site = await this.sites.find(organizationId, siteId);
     if (site.verifiedAt === null) {
       throw new ConflictException('Vérifiez d’abord que ce site vous appartient.');
@@ -68,7 +67,7 @@ export class ScansService {
       data: {
         organizationId,
         siteId,
-        trigger: 'MANUAL',
+        trigger,
         referentialVersion: CURRENT_REFERENTIAL.version,
       },
     });
@@ -253,6 +252,7 @@ export class ScansService {
       selector: string;
     }) => ({
       ruleId,
+      title: CORRECTIONS_FR[ruleId]?.title ?? null,
       pagePath,
       selector,
     });

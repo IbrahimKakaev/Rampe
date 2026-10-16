@@ -1,5 +1,6 @@
 import {
   ConfigError,
+  REPORTS_QUEUE,
   SCAN_DEFAULTS,
   SCAN_EVENTS_QUEUE,
   type ScanEvent,
@@ -8,7 +9,9 @@ import {
 } from '@rampe/shared';
 import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
+import { chromium } from 'playwright-core';
 
+import { createReportHandler, renderPdf } from './report/pdf.js';
 import { loadScanConfig } from './scan/config.js';
 import { createProxiedFetcher } from './scan/http-fetcher.js';
 import { createScanJobHandler, createSiteCheckHandler } from './scan/jobs.js';
@@ -45,13 +48,16 @@ function start(): void {
         },
       }),
     emit: async (event, id) => {
-      // The API retries a closing message until every page is recorded.
+      // The API retries a closing message until every page is recorded. A message
+      // holds extracts of a customer's pages: it goes once recorded, and a failed
+      // one is kept a week for the operator. Recording is idempotent, so a message
+      // sent again after its removal does no harm.
       await events.add(event.type, event, {
         jobId: id,
         attempts: 10,
         backoff: { type: 'exponential', delay: 1000 },
-        removeOnComplete: 1000,
-        removeOnFail: 5000,
+        removeOnComplete: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60, count: 5000 },
       });
     },
   });
@@ -59,6 +65,17 @@ function start(): void {
     fetchText: fetcher.fetchText,
     gate,
     intervalMs: SCAN_DEFAULTS.navigationIntervalMs,
+  });
+
+  const handleReport = createReportHandler({
+    render: async (html) => {
+      const browser = await chromium.connect(config.browserWsEndpoint, { timeout: 30_000 });
+      try {
+        return await renderPdf(browser, html);
+      } finally {
+        await browser.close();
+      }
+    },
   });
 
   const workers = [
@@ -73,6 +90,8 @@ function start(): void {
       connection,
       concurrency: 4,
     }),
+    // A report is printed by the same isolated browser, between two scan pages at most.
+    new Worker(REPORTS_QUEUE, (job) => handleReport(job.data), { connection, concurrency: 1 }),
   ];
   for (const worker of workers) {
     worker.on('ready', () => {

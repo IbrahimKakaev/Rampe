@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { SCAN_EVENTS_QUEUE, SCANS_QUEUE } from '@rampe/shared';
+import { Queue } from 'bullmq';
 
 import { analyzedPage, reportScan, verifiedSite } from './support/fixtures.js';
 import { type Harness, signedInAccount, startHarness } from './support/harness.js';
@@ -98,7 +100,7 @@ describe('organisations, members and invitations', () => {
     ]);
   });
 
-  it('deletes an organisation and every row that belongs to it, after the owner’s password', async () => {
+  it('deletes an organisation, every row and every queued job that belongs to it, after the owner’s password', async () => {
     const owner = await signedInAccount(harness, 'leaving@example.fr');
     const org = owner.organizationId;
     const siteId = await verifiedSite(harness, owner.client, org, 'https://leaving.example');
@@ -110,9 +112,36 @@ describe('organisations, members and invitations', () => {
     await owner.client
       .post(`/orgs/${org}/invitations`, { email: 'someone@example.fr', role: 'MEMBER' })
       .expect(201);
+    // A second scan waits in the queue, and a message of the worker about it is on its way.
+    const queued = (await owner.client.post(`/orgs/${org}/sites/${siteId}/scans`).expect(201))
+      .body as { id: string };
+    const connection = { url: harness.valkeyUrl };
+    const scans = new Queue(SCANS_QUEUE, { connection });
+    const scanEvents = new Queue(SCAN_EVENTS_QUEUE, { connection });
+    await scanEvents.add(
+      'started',
+      { type: 'started', scanId: queued.id, at: new Date().toISOString() },
+      { jobId: `${queued.id}-started`, delay: 60 * 60 * 1000 },
+    );
+    const jobsOf = async (): Promise<string[]> =>
+      (
+        await Promise.all(
+          [scans, scanEvents].map((queue) =>
+            queue.getJobs(['wait', 'delayed', 'prioritized', 'active', 'failed', 'completed']),
+          ),
+        )
+      )
+        .flat()
+        .map((job) => (job.data as { scanId: string }).scanId)
+        .filter((id) => id === scan.id || id === queued.id);
+    // Both scan jobs (no worker runs in these tests) and the message.
+    expect(await jobsOf()).toHaveLength(3);
 
     await owner.client.delete(`/orgs/${org}`, { password: 'pas le bon mot de passe' }).expect(403);
     await owner.client.delete(`/orgs/${org}`, { password: 'un mot de passe solide' }).expect(204);
+
+    expect(await jobsOf()).toEqual([]);
+    await Promise.all([scans.close(), scanEvents.close()]);
 
     const tables = await harness.prisma.$queryRaw<{ table_name: string }[]>`
       SELECT table_name FROM information_schema.columns

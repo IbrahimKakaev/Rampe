@@ -1,7 +1,13 @@
 import { HttpClient, httpResource } from '@angular/common/http';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { SCAN_MAX_PAGES_LIMIT, scanSchema, siteSchema, webPath } from '@rampe/shared';
+import {
+  SCAN_MAX_PAGES_LIMIT,
+  scanScheduleSchema,
+  scanSchema,
+  siteSchema,
+  webPath,
+} from '@rampe/shared';
 import { firstValueFrom } from 'rxjs';
 import * as z from 'zod/mini';
 
@@ -17,8 +23,18 @@ import { ScoreChart, type ScorePoint } from '../ui/score-chart';
 
 const METHOD_LABEL = { DNS: 'par un enregistrement DNS', FILE: 'par un fichier' } as const;
 
-/** The page limit as typed in its field: a whole number within the bounds the API accepts. */
+const SCHEDULES = [
+  { value: 'NONE', label: 'Aucun : seulement à la demande' },
+  { value: 'DAILY', label: 'Chaque jour' },
+  { value: 'WEEKLY', label: 'Chaque semaine' },
+] as const;
+
+/**
+ * The settings as typed: the page limit is a whole number within the bounds
+ * the API accepts, the schedule one of its values.
+ */
 const limitsSchema = z.strictObject({
+  schedule: scanScheduleSchema,
   maxPages: z.pipe(
     z.string().check(z.trim(), z.regex(/^\d{1,3}$/)),
     z.pipe(
@@ -81,6 +97,7 @@ export class SitePage {
 
   protected readonly start = new FormState(z.strictObject({}), {});
   protected readonly limits = new FormState(limitsSchema, {
+    schedule: 'Choisissez la fréquence des scans.',
     maxPages: `Saisissez un nombre entier de 1 à ${String(SCAN_MAX_PAGES_LIMIT)}.`,
   });
   protected readonly limitsSaved = signal(false);
@@ -88,6 +105,7 @@ export class SitePage {
   protected readonly statusLabel = SCAN_STATUS_LABEL;
   protected readonly methodLabel = METHOD_LABEL;
   protected readonly maxPagesLimit = SCAN_MAX_PAGES_LIMIT;
+  protected readonly schedules = SCHEDULES;
 
   constructor() {
     titleFrom(() => (this.siteResource.hasValue() ? this.siteResource.value().host : null));

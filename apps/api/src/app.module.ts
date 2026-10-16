@@ -8,6 +8,7 @@ import { InfraModule } from './infra/infra.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { ScansModule } from './scans/scans.module.js';
 import { OrganizationGuard } from './security/organization.guard.js';
+import { ReportsModule } from './reports/reports.module.js';
 import { RateLimitGuard } from './security/rate-limit.js';
 import { SecurityModule } from './security/security.module.js';
 import { SessionGuard } from './security/session.guard.js';
@@ -28,6 +29,7 @@ export class AppModule {
         OrganizationsModule,
         SitesModule,
         ScansModule,
+        ReportsModule,
       ],
       providers: [
         { provide: APP_CONFIG, useValue: config },

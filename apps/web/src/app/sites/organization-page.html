@@ -1,0 +1,109 @@
+<nav class="breadcrumb" aria-label="Fil d’Ariane">
+  <ol>
+    <li><a [routerLink]="sitesPath()">Sites</a></li>
+    <li aria-current="page">Paramètres de l’organisation</li>
+  </ol>
+</nav>
+
+<h1>Paramètres de l’organisation</h1>
+
+@if (loadError(); as message) {
+<div class="alert" role="alert"><p>{{ message }}</p></div>
+} @else if (organization.hasValue()) { @let current = organization.value(); @if (!owner()) {
+<dl class="dl-inline">
+  <dt>Nom</dt>
+  <dd>{{ current.name }}</dd>
+  <dt>Conservation des scans</dt>
+  <dd>{{ current.retentionMonths }} mois</dd>
+</dl>
+<p>Seuls les propriétaires de l’organisation peuvent changer ces paramètres.</p>
+} @else {
+<form class="form" novalidate (submit)="save($event)">
+  @if (settings.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="name">Nom de l’organisation</label>
+    <input
+      id="name"
+      name="name"
+      type="text"
+      autocomplete="organization"
+      [value]="current.name"
+      [attr.aria-invalid]="settings.errors().name ? true : null"
+      [attr.aria-describedby]="settings.errors().name ? 'name-erreur' : null"
+    />
+    @if (settings.errors().name; as message) {
+    <p id="name-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="field">
+    <label for="retentionMonths">Durée de conservation des scans, en mois</label>
+    <span id="retentionMonths-aide" class="field-hint">
+      De 1 à 120. Chaque nuit, les scans plus anciens sont supprimés avec leurs défauts et les
+      extraits de code des pages.
+    </span>
+    <input
+      id="retentionMonths"
+      name="retentionMonths"
+      type="number"
+      inputmode="numeric"
+      min="1"
+      max="120"
+      [value]="current.retentionMonths"
+      [attr.aria-invalid]="settings.errors().retentionMonths ? true : null"
+      [attr.aria-describedby]="
+            settings.errors().retentionMonths
+              ? 'retentionMonths-aide retentionMonths-erreur'
+              : 'retentionMonths-aide'
+          "
+    />
+    @if (settings.errors().retentionMonths; as message) {
+    <p id="retentionMonths-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button type="submit" class="button" [attr.aria-disabled]="settings.pending() ? true : null">
+      Enregistrer
+    </button>
+    <span role="status"> @if (saved()) { Paramètres enregistrés. } </span>
+  </div>
+</form>
+
+<h2>Supprimer l’organisation</h2>
+<p class="prose">
+  La suppression efface définitivement l’organisation et tout ce qui lui appartient : ses sites,
+  leurs scans, les défauts et les extraits de code des pages, les invitations. Les comptes des
+  membres restent, avec leurs autres organisations.
+</p>
+<form class="form" novalidate (submit)="remove($event)">
+  @if (deletion.failure(); as failure) {
+  <div class="alert" role="alert"><p>{{ failure }}</p></div>
+  }
+  <div class="field">
+    <label for="password">Votre mot de passe, pour confirmer</label>
+    <input
+      id="password"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      [attr.aria-invalid]="deletion.errors().password ? true : null"
+      [attr.aria-describedby]="deletion.errors().password ? 'password-erreur' : null"
+    />
+    @if (deletion.errors().password; as message) {
+    <p id="password-erreur" class="field-error">{{ message }}</p>
+    }
+  </div>
+  <div class="actions">
+    <button
+      type="submit"
+      class="button button--danger"
+      [attr.aria-disabled]="deletion.pending() ? true : null"
+    >
+      Supprimer définitivement {{ current.name }}
+    </button>
+  </div>
+</form>
+} } @else {
+<p role="status">Chargement…</p>
+}

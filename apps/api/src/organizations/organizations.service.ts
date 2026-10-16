@@ -18,6 +18,7 @@ import {
 import { APP_CONFIG, type AppConfig } from '../config/app-config.js';
 import { Mailer } from '../infra/mailer.js';
 import { Prisma } from '../infra/prisma.js';
+import { Queues } from '../infra/queues.js';
 import { invitationEmail } from '../mail/templates.js';
 import type { SessionUser } from '../security/request-context.js';
 import { hashToken, newToken, verifyPassword } from '../security/secrets.js';
@@ -29,6 +30,7 @@ export class OrganizationsService {
   constructor(
     private readonly prisma: Prisma,
     private readonly mailer: Mailer,
+    private readonly queues: Queues,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -74,15 +76,22 @@ export class OrganizationsService {
 
   /**
    * Deletes the organisation and, by cascade, everything that belongs to it:
-   * members, invitations, sites, scans, pages and defects. The owner confirms
-   * with their password.
+   * members, invitations, sites, scans, pages, defects and alerts. Then its
+   * jobs in Valkey: queued scans and the worker's messages about them. The
+   * owner confirms with their password.
    */
   async delete(organizationId: string, user: SessionUser, password: string): Promise<void> {
     const account = await this.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
     if (!(await verifyPassword(account.passwordHash, password))) {
       throw new ForbiddenException('Mot de passe incorrect.');
     }
+    const scans = await this.prisma.scan.findMany({
+      where: { organizationId },
+      select: { id: true },
+    });
     await this.prisma.organization.delete({ where: { id: organizationId } });
+    // After the rows: a scan job that starts in between finds no scan to report to.
+    await this.queues.forgetScans(new Set(scans.map(({ id }) => id)));
   }
 
   async members(organizationId: string): Promise<Member[]> {

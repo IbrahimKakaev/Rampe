@@ -70,3 +70,18 @@ export const siteCheckResultSchema = z.strictObject({
   body: z.nullable(z.string()),
 });
 export type SiteCheckResult = z.infer<typeof siteCheckResultSchema>;
+
+/**
+ * API → worker: turn the HTML of a report into a PDF. The worker renders it in
+ * the isolated browser, JavaScript off and every network request refused.
+ */
+export const REPORTS_QUEUE = 'reports';
+
+export const reportJobSchema = z.strictObject({ html: z.string() });
+export type ReportJob = z.infer<typeof reportJobSchema>;
+
+export const reportResultSchema = z.strictObject({
+  /** The PDF, base64-encoded: a job result travels as JSON. */
+  pdf: z.string(),
+});
+export type ReportResult = z.infer<typeof reportResultSchema>;

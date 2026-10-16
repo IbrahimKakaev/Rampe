@@ -3,6 +3,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   findingsSummarySchema,
+  scanComparisonSchema,
   scanPageSchema,
   scanSchema,
   siteSchema,
@@ -70,6 +71,32 @@ export class ScanPage {
         : undefined,
     { parse: parseWith(findingsSummarySchema) },
   );
+
+  protected readonly comparison = httpResource(
+    () => (this.finished() ? `${API}/orgs/${this.org()}/scans/${this.scan()}/diff` : undefined),
+    { parse: parseWith(scanComparisonSchema) },
+  );
+  protected readonly reportPath = computed(
+    () => `${API}/orgs/${this.org()}/scans/${this.scan()}/report.pdf`,
+  );
+  /** Defects listed at most in each list of the comparison. */
+  protected readonly listLimit = 50;
+  protected readonly comparisonSummary = computed(() => {
+    if (!this.comparison.hasValue()) {
+      return '';
+    }
+    const { added, fixed, unchanged, notCompared } = this.comparison.value();
+    const count = (value: number, one: string, many: string): string =>
+      `${String(value)} ${value > 1 ? many : one}`;
+    return (
+      `${count(added.length, 'nouveau défaut', 'nouveaux défauts')}, ` +
+      `${count(fixed.length, 'défaut corrigé', 'défauts corrigés')} et ` +
+      `${count(unchanged, 'défaut inchangé', 'défauts inchangés')}, sur les pages analysées dans les deux scans.` +
+      (notCompared > 0
+        ? ` ${count(notCompared, 'défaut n’est pas comparé', 'défauts ne sont pas comparés')} : leur page n’a pas été analysée dans l’un des deux scans.`
+        : '')
+    );
+  });
 
   protected readonly active = computed(
     () => this.scanResource.hasValue() && isScanActive(this.scanResource.value().status),

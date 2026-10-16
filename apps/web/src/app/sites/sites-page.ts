@@ -48,6 +48,9 @@ export class SitesPage {
   protected readonly statusLabel = SCAN_STATUS_LABEL;
 
   protected readonly newSitePath = computed(() => webPath('newSite', { org: this.org() }));
+  protected readonly organizationPath = computed(() =>
+    webPath('organization', { org: this.org() }),
+  );
 
   constructor() {
     titleFrom(() =>

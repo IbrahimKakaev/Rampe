@@ -16,6 +16,7 @@ import { RobotPage } from './pages/robot-page';
 import { FindingPage } from './scans/finding-page';
 import { ScanPage } from './scans/scan-page';
 import { NewSitePage } from './sites/new-site-page';
+import { OrganizationPage } from './sites/organization-page';
 import { SitePage } from './sites/site-page';
 import { SitesPage } from './sites/sites-page';
 import { SiteVerificationPage } from './sites/site-verification-page';
@@ -71,6 +72,12 @@ export const routes: Routes = [
     component: NoOrganizationPage,
     canActivate: [requireSession, toFirstOrganization],
     title: pageTitle('Mes sites'),
+  },
+  {
+    path: WEB_ROUTES.organization,
+    component: OrganizationPage,
+    canActivate: [requireSession],
+    title: pageTitle('Paramètres de l’organisation'),
   },
   {
     path: WEB_ROUTES.sites,

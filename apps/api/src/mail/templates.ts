@@ -51,3 +51,37 @@ export function invitationEmail(
       SIGNATURE,
   };
 }
+
+function countOf(count: number, one: string, many: string): string {
+  return `${String(count)} ${count > 1 ? many : one}`;
+}
+
+/** New defects since the previous scan of a site, sent once to each member. */
+export function regressionEmail(
+  to: string,
+  alert: {
+    readonly host: string;
+    readonly finishedAt: string;
+    readonly added: number;
+    readonly fixed: number;
+    /** The first new defects: French name and page. */
+    readonly examples: readonly { readonly title: string; readonly pagePath: string }[];
+    readonly criteriaToCheckManually: number;
+    readonly link: string;
+  },
+): MailMessage {
+  const examples = alert.examples.map(({ title, pagePath }) => `- ${title} (page ${pagePath})`);
+  const more = alert.added - alert.examples.length;
+  return {
+    to,
+    subject: `${alert.host} : ${countOf(alert.added, 'nouveau défaut', 'nouveaux défauts')} d’accessibilité`,
+    text:
+      `Bonjour,\n\nLe pré-audit automatique de ${alert.host}, terminé le ${alert.finishedAt}, a trouvé ` +
+      `${countOf(alert.added, 'nouveau défaut', 'nouveaux défauts')} par rapport au scan précédent` +
+      `${alert.fixed > 0 ? `, et ${countOf(alert.fixed, 'défaut corrigé', 'défauts corrigés')}` : ''}.\n\n` +
+      `${examples.join('\n')}${more > 0 ? `\n- et ${String(more)} autre${more > 1 ? 's' : ''}` : ''}\n\n` +
+      `Le détail et les corrections à apporter :\n\n${alert.link}\n\n` +
+      `Ce pré-audit automatique ne couvre qu’une partie du RGAA : ${String(alert.criteriaToCheckManually)} critères restent à vérifier manuellement.` +
+      SIGNATURE,
+  };
+}

@@ -3,7 +3,9 @@ import { criteriaToCheckManually } from '@rampe/rules';
 import type { Site, VerificationResult } from '@rampe/shared';
 
 import type { VerificationMethod } from '../generated/prisma/client.js';
+import { Clock } from '../infra/clock.js';
 import { Prisma } from '../infra/prisma.js';
+import { nextScanAt } from '../scans/schedule.js';
 import { newToken } from '../security/secrets.js';
 import { OwnershipVerifier } from './ownership.js';
 
@@ -31,6 +33,7 @@ export class SitesService {
   constructor(
     private readonly prisma: Prisma,
     private readonly ownership: OwnershipVerifier,
+    private readonly clock: Clock,
   ) {}
 
   async list(organizationId: string): Promise<Site[]> {
@@ -72,12 +75,19 @@ export class SitesService {
     siteId: string,
     changes: { maxPages?: number | undefined; schedule?: 'NONE' | 'DAILY' | 'WEEKLY' | undefined },
   ): Promise<Site> {
-    await this.find(organizationId, siteId);
+    const current = await this.find(organizationId, siteId);
+    // A new schedule starts from now; the same one sent again keeps its next scan.
+    const rescheduled = changes.schedule !== undefined && changes.schedule !== current.schedule;
     const site = await this.prisma.site.update({
       where: { id: siteId },
       data: {
         ...(changes.maxPages === undefined ? {} : { maxPages: changes.maxPages }),
-        ...(changes.schedule === undefined ? {} : { schedule: changes.schedule }),
+        ...(changes.schedule === undefined || !rescheduled
+          ? {}
+          : {
+              schedule: changes.schedule,
+              nextScanAt: nextScanAt(changes.schedule, this.clock.now()),
+            }),
       },
     });
     return this.toSite(site);
@@ -171,6 +181,7 @@ export class SitesService {
       verifiedAt: site.verifiedAt?.toISOString() ?? null,
       maxPages: site.maxPages,
       schedule: site.schedule,
+      nextScanAt: site.nextScanAt?.toISOString() ?? null,
       createdAt: site.createdAt.toISOString(),
       lastScan:
         latest === null

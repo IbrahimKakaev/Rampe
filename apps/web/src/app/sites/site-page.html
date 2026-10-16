@@ -100,6 +100,26 @@ history = scans.value();
   @if (limits.failure(); as failure) {
   <div class="alert" role="alert"><p>{{ failure }}</p></div>
   }
+  <fieldset class="field" aria-describedby="schedule-aide">
+    <legend>Scan automatique</legend>
+    <p id="schedule-aide" class="field-hint">
+      @if (site.nextScanAt; as next) { Prochain scan automatique le
+      <time [attr.datetime]="next">{{ dateTime(next) }}</time>. } @else { Le robot ne repasse que
+      quand vous lancez un scan. } En cas de nouveaux défauts, les membres reçoivent un e-mail.
+    </p>
+    @for (option of schedules; track option.value) {
+    <div class="choice">
+      <input
+        type="radio"
+        name="schedule"
+        [id]="'frequence-' + option.value"
+        [value]="option.value"
+        [checked]="site.schedule === option.value"
+      />
+      <label [for]="'frequence-' + option.value">{{ option.label }}</label>
+    </div>
+    }
+  </fieldset>
   <div class="field">
     <label for="maxPages">Nombre maximal de pages par scan</label>
     <span id="maxPages-aide" class="field-hint">
@@ -128,7 +148,7 @@ history = scans.value();
     >
       Enregistrer
     </button>
-    <span role="status"> @if (limitsSaved()) { Réglage enregistré. } </span>
+    <span role="status"> @if (limitsSaved()) { Réglages enregistrés. } </span>
   </div>
 </form>
 } @else {

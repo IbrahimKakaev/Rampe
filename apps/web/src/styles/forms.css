@@ -149,3 +149,13 @@ fieldset {
 .success > :last-child {
   margin-bottom: 0;
 }
+
+.button--danger {
+  background: var(--color-down);
+  border-color: var(--color-down);
+}
+
+.button--danger:hover {
+  background: #7d1a15;
+  border-color: #7d1a15;
+}

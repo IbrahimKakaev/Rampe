@@ -95,6 +95,13 @@ describe('ScanPage', () => {
       trend: null,
     });
     http.expectOne(`${BASE}/scans/${SCAN}/findings/summary`).flush(summary);
+    http.expectOne(`${BASE}/scans/${SCAN}/diff`).flush({
+      previousScanId: '0192f2b0-0000-7000-8000-0000000000ff',
+      added: [{ ruleId: 'link-name', title: 'Lien sans intitulé', pagePath: '/', selector: 'a' }],
+      fixed: [],
+      unchanged: 1,
+      notCompared: 2,
+    });
     await settle();
   });
 
@@ -112,6 +119,24 @@ describe('ScanPage', () => {
     expect(element.querySelector('[data-pre-audit-notice]')?.textContent).toContain(
       '105 critères RGAA',
     );
+  });
+
+  it('offers the PDF report of the scan', () => {
+    const link = Array.from(element.querySelectorAll('a')).find((anchor) =>
+      anchor.textContent.includes('Télécharger le rapport'),
+    );
+
+    expect(link?.getAttribute('href')).toBe(`${BASE}/scans/${SCAN}/report.pdf`);
+    expect(link?.hasAttribute('download')).toBe(true);
+  });
+
+  it('lists what changed since the previous scan, and says what could not be compared', () => {
+    const text = element.textContent.replace(/\s+/g, ' ');
+
+    expect(text).toContain(
+      '1 nouveau défaut, 0 défaut corrigé et 1 défaut inchangé, sur les pages analysées dans les deux scans. 2 défauts ne sont pas comparés',
+    );
+    expect(text).toContain('Lien sans intitulé, page /, élément a');
   });
 
   it('groups the defects by RGAA criterion first, with those attached to none apart', () => {

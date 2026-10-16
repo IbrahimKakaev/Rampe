@@ -11,6 +11,7 @@ import type { PageResult, ScanEvent } from '@rampe/shared';
 
 import type { ScanStatus } from '../generated/prisma/client.js';
 import { Prisma } from '../infra/prisma.js';
+import { RegressionAlerts } from './regression-alerts.js';
 
 const STATUS: Readonly<Record<'completed' | 'partial' | 'failed', ScanStatus>> = {
   completed: 'COMPLETED',
@@ -33,7 +34,10 @@ export class NotYetError extends Error {
 export class ScanRecorder {
   private readonly logger = new Logger(ScanRecorder.name);
 
-  constructor(private readonly prisma: Prisma) {}
+  constructor(
+    private readonly prisma: Prisma,
+    private readonly alerts: RegressionAlerts,
+  ) {}
 
   async record(event: ScanEvent): Promise<void> {
     // The organisation comes from the database, never from the message.
@@ -211,5 +215,14 @@ export class ScanRecorder {
         },
       }),
     ]);
+    // The scan is recorded whatever happens to the alert: a mail server down must
+    // not make the queue replay a closing message that is already applied.
+    try {
+      await this.alerts.afterScan(scan.id);
+    } catch (error) {
+      this.logger.error(
+        `Regression alert of scan ${scan.id} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 }

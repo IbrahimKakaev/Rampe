@@ -1,21 +1,14 @@
-import { type BrowserContext, expect, type Page, request, test } from '@playwright/test';
+import { type BrowserContext, expect, type Page, test } from '@playwright/test';
 import { WEB_ROUTES, type WebRoute, webPath } from '@rampe/shared';
 
 import { expectNoAccessibilityViolations } from './accessibility.js';
-import { BASE_URL, demoCookies } from './support/api.js';
+import { demoCookies, type DemoIds, demoIds } from './support/api.js';
 
 /**
  * Every page of the application, as the router declares it (WEB_ROUTES, which
  * a unit test of the web application ties to the router configuration), is
  * checked here: axe-core, the content security policy, and the honesty rules.
  */
-
-interface DemoIds {
-  readonly org: string;
-  readonly site: string;
-  readonly scan: string;
-  readonly finding: string;
-}
 
 interface Visit {
   /** Pages of an organisation need the demonstration account. */
@@ -53,6 +46,7 @@ const VISITS: Readonly<Record<WebRoute, Visit>> = {
   },
   robot: { signedIn: false, url: () => webPath('robot') },
   dashboard: { signedIn: true, url: () => webPath('dashboard') },
+  organization: { signedIn: true, url: ({ org }) => webPath('organization', { org }) },
   sites: { signedIn: true, url: ({ org }) => webPath('sites', { org }) },
   newSite: { signedIn: true, url: ({ org }) => webPath('newSite', { org }) },
   site: {
@@ -81,30 +75,6 @@ const VISITS: Readonly<Record<WebRoute, Visit>> = {
   },
   notFound: { signedIn: false, url: () => '/cette-page-n-existe-pas' },
 };
-
-/** Identifiers of the demonstration data: its site, and a scan with defects. */
-async function demoIds(): Promise<DemoIds> {
-  const context = await request.newContext({
-    baseURL: BASE_URL,
-    storageState: { cookies: await demoCookies(), origins: [] },
-  });
-  const get = async <T>(path: string): Promise<T> =>
-    (await (await context.get(`/api/v1${path}`)).json()) as T;
-  const [organization] = await get<{ id: string }[]>('/orgs');
-  const org = organization?.id ?? '';
-  const sites = await get<{ id: string; host: string }[]>(`/orgs/${org}/sites`);
-  const site = sites.find(({ host }) => host === 'fixture-site')?.id ?? '';
-  for (const { id } of await get<{ id: string }[]>(`/orgs/${org}/sites/${site}/scans`)) {
-    const findings = await get<{ items: { id: string }[] }>(
-      `/orgs/${org}/scans/${id}/findings?limit=1`,
-    );
-    const [finding] = findings.items;
-    if (finding !== undefined) {
-      return { org, site, scan: id, finding: finding.id };
-    }
-  }
-  throw new Error('The demonstration has no scan with defects');
-}
 
 /** Content security policy violations reported by the browser while on the page. */
 function watchPolicyViolations(page: Page): string[] {
