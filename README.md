@@ -52,3 +52,7 @@ docker compose down
 ```
 
 Les conventions, toutes les commandes et la structure du dépôt sont dans [CLAUDE.md](CLAUDE.md). Les choix techniques et leurs raisons sont dans [DECISIONS.md](DECISIONS.md).
+
+## Mise en ligne
+
+Une démonstration se met en ligne gratuitement, sur un serveur Oracle Cloud « Always Free » avec HTTPS automatique : voir [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).

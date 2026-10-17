@@ -434,6 +434,7 @@ Critères d'acceptation :
 ### Après le J6
 
 - [x] Gestion des membres et des invitations dans l'interface (page « Membres »), sur l'API du J3. Parcours testé de bout en bout : invitation reçue dans Mailpit, acceptation, changement de rôle, retrait.
+- [x] Variante de production et guide de mise en ligne d'une démonstration gratuite ([docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)). Vérifiée en local en mode production ; la mise en ligne elle-même attend les comptes Oracle Cloud, DuckDNS et Brevo.
 
 ## 8. Risques
 
@@ -457,4 +458,4 @@ Critères d'acceptation :
 - **Paiement Stripe.** Rien n'est codé. Les limites par organisation (nombre de pages, fréquence) sont des réglages, pas des constantes.
 - **Marque blanche.** Couleurs et logo passent par des variables CSS et un gabarit de rapport unique.
 - **Intégration dans la CI des clients.** Le déclenchement d'un scan est déjà un endpoint REST ; il manquera les jetons d'API (D7).
-- **Déploiement en production.** Le cahier des charges ne demande que l'environnement local et la CI. L'hébergement reste à décider.
+- **Déploiement en production.** Le cahier des charges ne demande que l'environnement local et la CI. Une démonstration peut être mise en ligne gratuitement (voir [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)) ; un vrai service demandera un hébergement avec garantie de disponibilité.

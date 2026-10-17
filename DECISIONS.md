@@ -378,3 +378,11 @@ Aucune règle active n'a aujourd'hui de correspondance incertaine : les revues d
 **Le test du J1 « charge au plus deux pages à la fois, et utilise ce parallélisme » a échoué une fois**, dans une exécution complète depuis des volumes vides, puis il est passé à chaque nouvel essai, seul ou dans le même ordre. Il ne voit deux pages ouvertes en même temps que pendant les trente secondes où `/lent.html` fait attendre le robot. Si l'ordre de l'exploration fait de cette page la dernière visitée, il n'y a rien à recouvrir. Le test n'est ni affaibli ni désactivé ; en cas d'échec, il affiche désormais la chronologie des requêtes, qui dira s'il faut revoir le site de test.
 
 **Les tests de bout en bout se relancent sur une pile déjà utilisée.** Le test de la démonstration lisait le dernier scan du site, que les exécutions précédentes remplacent ; il lit désormais le plus ancien, celui que `docker compose up` a lancé.
+
+### Mise en ligne d'une démonstration
+
+**Une variante de production qui s'ajoute au fichier Compose (`docker-compose.prod.yml`), sans le dupliquer.** Elle passe chaque service en production, exige de vrais secrets, désactive Mailpit, le site de test et la démonstration par un profil, retire la publication de nginx et place **Caddy** devant l'interface. Caddy obtient et renouvelle seul le certificat Let's Encrypt, redirige HTTP vers HTTPS et ajoute HSTS. Elle utilise les balises `!override` et `!reset` de Compose (version 2.24 ou plus).
+
+**nginx reprend l'adresse du client que Caddy transmet** (`X-Forwarded-For`), mais seulement pour une requête venue d'un réseau de conteneurs, où il n'y a que Caddy en production. Sans cela, la limitation de débit aurait compté tous les visiteurs comme une seule adresse : celle de Caddy.
+
+**Hébergement conseillé pour un budget de 3 € par mois : Oracle Cloud « Always Free »**, gratuit, avec DuckDNS pour l'adresse et Brevo pour les e-mails. La pile demande environ 4 Go de mémoire, dont 1,5 Go pour Chromium : les VPS à moins de 3 € n'en offrent pas assez. La variante a été lancée en local en mode production : HTTPS, HSTS, cookies `Secure`, adresse du client transmise, scan d'un site public réussi et adresse privée refusée par le robot. Le guide est dans [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
