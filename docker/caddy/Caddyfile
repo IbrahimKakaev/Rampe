@@ -1,0 +1,13 @@
+# Point d'entrée public en production : HTTPS, certificat Let's Encrypt obtenu
+# et renouvelé par Caddy, puis tout est relayé à nginx (conteneur web).
+{
+	email {$ACME_EMAIL}
+}
+
+{$RAMPE_DOMAIN} {
+	encode zstd gzip
+	# HSTS : une fois en HTTPS, le navigateur n'accepte plus le site qu'en HTTPS.
+	header Strict-Transport-Security "max-age=31536000"
+	# Caddy pose X-Forwarded-For avec l'adresse du client ; nginx la reprend.
+	reverse_proxy web:8080
+}

@@ -1,0 +1,88 @@
+# Variante de production, à ajouter au fichier principal :
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Elle met chaque service en production, exige de vrais secrets (le marqueur
+# "local-only" est refusé au démarrage), retire Mailpit, le site de test et la
+# démonstration, et place Caddy devant l'interface pour le HTTPS.
+# Voir docs/DEPLOIEMENT.md.
+
+services:
+  # Développement seulement : désactivés en production, sauf à demander le profil.
+  mailpit:
+    profiles: [developpement]
+  fixture-site:
+    profiles: [developpement]
+  seed:
+    profiles: [developpement]
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manque dans .env.prod}
+
+  migrate:
+    environment:
+      DATABASE_URL: postgresql://rampe:${POSTGRES_PASSWORD:?}@postgres:5432/rampe
+
+  api:
+    environment:
+      NODE_ENV: production
+      SMTP_URL: ${SMTP_URL:?SMTP_URL manque dans .env.prod}
+      MAIL_FROM: ${MAIL_FROM:?MAIL_FROM manque dans .env.prod}
+      PUBLIC_URL: https://${RAMPE_DOMAIN:?RAMPE_DOMAIN manque dans .env.prod}
+      COOKIE_SECURE: 'true'
+    # Plus de Mailpit : l'API n'attend que la base et la file.
+    depends_on: !override
+      migrate:
+        condition: service_completed_successfully
+      valkey:
+        condition: service_healthy
+
+  worker:
+    environment:
+      NODE_ENV: production
+      BROWSER_WS_ENDPOINT: ws://browser:3000${BROWSER_WS_PATH:?BROWSER_WS_PATH manque dans .env.prod}
+      SCAN_BOT_INFO_URL: https://${RAMPE_DOMAIN:?}/robot
+
+  egress-proxy:
+    environment:
+      NODE_ENV: production
+      # Aucune adresse privée n'est joignable par le robot en production.
+      EGRESS_ALLOWED_PRIVATE_HOSTS: ''
+
+  browser:
+    environment:
+      NODE_ENV: production
+
+  # nginx n'est plus publié sur la machine : seul Caddy l'atteint.
+  web:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    environment:
+      RAMPE_DOMAIN: ${RAMPE_DOMAIN:?}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL manque dans .env.prod}
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks: [front]
+    cap_drop: [ALL]
+    # Écouter sur les ports 80 et 443.
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: ['no-new-privileges:true']
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 128m
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
